@@ -148,6 +148,35 @@ router.patch("/admin/users/:id/verify", async (req, res): Promise<void> => {
   res.json(updated);
 });
 
+// PATCH /admin/users/:id/role
+router.patch("/admin/users/:id/role", async (req, res): Promise<void> => {
+  const auth = getAuth(req);
+  const userId = auth?.userId;
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const admin = await requireAdmin(userId);
+  if (!admin) { res.status(403).json({ error: "Admin access required" }); return; }
+
+  const params = z.object({ id: z.coerce.number().int() }).safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  const parsed = z.object({ role: z.enum(["freelancer", "client", "admin"]) }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  if (params.data.id === admin.id) {
+    res.status(400).json({ error: "You cannot change your own role" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(profilesTable)
+    .set({ role: parsed.data.role, updatedAt: new Date() })
+    .where(eq(profilesTable.id, params.data.id))
+    .returning();
+
+  if (!updated) { res.status(404).json({ error: "User not found" }); return; }
+  res.json(updated);
+});
+
 // GET /admin/jobs
 router.get("/admin/jobs", async (req, res): Promise<void> => {
   const auth = getAuth(req);

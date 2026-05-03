@@ -18,6 +18,7 @@ import type {
 
 import type {
   AdminBlockUserBody,
+  AdminChangeUserRoleBody,
   AdminFlagBody,
   AdminListJobsParams,
   AdminListUsersParams,
@@ -3042,6 +3043,93 @@ export const useAdminVerifyUser = <
   TContext
 > => {
   return useMutation(getAdminVerifyUserMutationOptions(options));
+};
+
+/**
+ * @summary Admin - change a user's role
+ */
+export const getAdminChangeUserRoleUrl = (id: number) => {
+  return `/api/admin/users/${id}/role`;
+};
+
+export const adminChangeUserRole = async (
+  id: number,
+  adminChangeUserRoleBody: AdminChangeUserRoleBody,
+  options?: RequestInit,
+): Promise<AdminUser> => {
+  return customFetch<AdminUser>(getAdminChangeUserRoleUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminChangeUserRoleBody),
+  });
+};
+
+export const getAdminChangeUserRoleMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminChangeUserRole>>,
+    TError,
+    { id: number; data: BodyType<AdminChangeUserRoleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminChangeUserRole>>,
+  TError,
+  { id: number; data: BodyType<AdminChangeUserRoleBody> },
+  TContext
+> => {
+  const mutationKey = ["adminChangeUserRole"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminChangeUserRole>>,
+    { id: number; data: BodyType<AdminChangeUserRoleBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminChangeUserRole(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminChangeUserRoleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminChangeUserRole>>
+>;
+export type AdminChangeUserRoleMutationBody = BodyType<AdminChangeUserRoleBody>;
+export type AdminChangeUserRoleMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Admin - change a user's role
+ */
+export const useAdminChangeUserRole = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminChangeUserRole>>,
+    TError,
+    { id: number; data: BodyType<AdminChangeUserRoleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminChangeUserRole>>,
+  TError,
+  { id: number; data: BodyType<AdminChangeUserRoleBody> },
+  TContext
+> => {
+  return useMutation(getAdminChangeUserRoleMutationOptions(options));
 };
 
 /**

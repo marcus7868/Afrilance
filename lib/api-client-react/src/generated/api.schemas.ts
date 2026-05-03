@@ -357,6 +357,19 @@ export interface AdminVerifyUserBody {
   isTopRated?: boolean;
 }
 
+export type AdminChangeUserRoleBodyRole =
+  (typeof AdminChangeUserRoleBodyRole)[keyof typeof AdminChangeUserRoleBodyRole];
+
+export const AdminChangeUserRoleBodyRole = {
+  freelancer: "freelancer",
+  client: "client",
+  admin: "admin",
+} as const;
+
+export interface AdminChangeUserRoleBody {
+  role: AdminChangeUserRoleBodyRole;
+}
+
 export interface SavedJob {
   id: number;
   profileId: number;

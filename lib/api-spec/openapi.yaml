@@ -741,6 +741,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminUser"
 
+  /admin/users/{id}/role:
+    patch:
+      operationId: adminChangeUserRole
+      tags: [admin]
+      summary: Admin - change a user's role
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminChangeUserRoleBody"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
   /admin/jobs:
     get:
       operationId: adminListJobs
@@ -1559,6 +1584,14 @@ components:
           type: boolean
         isTopRated:
           type: boolean
+
+    AdminChangeUserRoleBody:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [freelancer, client, admin]
 
     SavedJob:
       type: object

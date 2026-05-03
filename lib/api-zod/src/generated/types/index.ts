@@ -7,6 +7,8 @@
  */
 
 export * from "./adminBlockUserBody";
+export * from "./adminChangeUserRoleBody";
+export * from "./adminChangeUserRoleBodyRole";
 export * from "./adminFlagBody";
 export * from "./adminListJobsParams";
 export * from "./adminListUsersParams";

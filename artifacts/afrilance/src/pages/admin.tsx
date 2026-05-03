@@ -6,6 +6,7 @@ import {
   useAdminBlockUser,
   useAdminFlagJob,
   useAdminVerifyUser,
+  useAdminChangeUserRole,
   getGetAdminStatsQueryKey,
   getAdminListUsersQueryKey,
   getAdminListJobsQueryKey,
@@ -60,6 +61,7 @@ export default function AdminPage() {
   const { mutate: blockUser } = useAdminBlockUser();
   const { mutate: flagJob } = useAdminFlagJob();
   const { mutate: verifyUser } = useAdminVerifyUser();
+  const { mutate: changeRole } = useAdminChangeUserRole();
 
   const handleBlock = (id: number, isBlocked: boolean) => {
     blockUser(
@@ -89,6 +91,13 @@ export default function AdminPage() {
   const handleVerificationStatus = (id: number, status: "approved" | "rejected") => {
     verifyUser(
       { id, data: { verificationStatus: status, ...(status === "approved" ? { isVerified: true } : {}) } as any },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) }) },
+    );
+  };
+
+  const handleRoleChange = (id: number, role: "freelancer" | "client" | "admin") => {
+    changeRole(
+      { id, data: { role } },
       { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) }) },
     );
   };
@@ -229,6 +238,7 @@ export default function AdminPage() {
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">User</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Role</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Change Role</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Location</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Joined</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Status</th>
@@ -246,7 +256,29 @@ export default function AdminPage() {
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="capitalize text-muted-foreground">{u.role}</span>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                              u.role === "admin" ? "bg-primary/10 text-primary" :
+                              u.role === "freelancer" ? "bg-blue-100 text-blue-700" :
+                              "bg-amber-100 text-amber-700"
+                            }`}>
+                              {u.role === "admin" && (
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                </svg>
+                              )}
+                              {u.role}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <select
+                              value={u.role}
+                              onChange={(e) => handleRoleChange(u.id, e.target.value as "freelancer" | "client" | "admin")}
+                              className="px-2 py-1 bg-background border border-border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                            >
+                              <option value="freelancer">Freelancer</option>
+                              <option value="client">Client</option>
+                              <option value="admin">Admin</option>
+                            </select>
                           </td>
                           <td className="px-4 py-3 text-muted-foreground">{u.location ?? "—"}</td>
                           <td className="px-4 py-3 text-muted-foreground">{formatRelative(u.createdAt)}</td>

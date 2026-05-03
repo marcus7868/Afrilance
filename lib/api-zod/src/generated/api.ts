@@ -879,6 +879,33 @@ export const AdminVerifyUserResponse = zod.object({
 });
 
 /**
+ * @summary Admin - change a user's role
+ */
+export const AdminChangeUserRoleParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AdminChangeUserRoleBody = zod.object({
+  role: zod.enum(["freelancer", "client", "admin"]),
+});
+
+export const AdminChangeUserRoleResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  role: zod.string(),
+  name: zod.string(),
+  email: zod.string().nullish(),
+  location: zod.string().nullish(),
+  isBlocked: zod.boolean(),
+  isVerified: zod.boolean().optional(),
+  isTopRated: zod.boolean().optional(),
+  verificationDocUrl: zod.string().nullish(),
+  verificationStatus: zod.string().optional(),
+  completedJobs: zod.number(),
+  createdAt: zod.string(),
+});
+
+/**
  * @summary Admin - list all jobs
  */
 export const AdminListJobsQueryParams = zod.object({
