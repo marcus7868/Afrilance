@@ -1,10 +1,20 @@
 import { useState, useEffect } from "react";
 import { Link, useSearch } from "wouter";
-import { useListJobs, getListJobsQueryKey } from "@workspace/api-client-react";
+import { useUser } from "@clerk/react";
+import {
+  useListJobs,
+  getListJobsQueryKey,
+  useListSavedJobs,
+  getListSavedJobsQueryKey,
+  useSaveJob,
+  useUnsaveJob,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SkillBadge } from "@/components/SkillBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatBudget, formatRelative } from "@/lib/format";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const CATEGORIES = [
   "Software Development", "Design & Creative", "Writing & Content",
@@ -16,6 +26,9 @@ const CATEGORIES = [
 export default function JobsPage() {
   const search = useSearch();
   const params = new URLSearchParams(search);
+  const { user } = useUser();
+  const queryClient = useQueryClient();
+
   const [filters, setFilters] = useState({
     search: params.get("search") ?? "",
     category: params.get("category") ?? "",
@@ -26,8 +39,10 @@ export default function JobsPage() {
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 10;
 
+  const debouncedSearch = useDebounce(filters.search, 400);
+
   const queryParams = {
-    ...(filters.search ? { search: filters.search } : {}),
+    ...(debouncedSearch ? { search: debouncedSearch } : {}),
     ...(filters.category ? { category: filters.category } : {}),
     ...(filters.remote === "true" ? { remote: true } : {}),
     ...(filters.minBudget ? { minBudget: parseFloat(filters.minBudget) } : {}),
@@ -39,6 +54,33 @@ export default function JobsPage() {
   const { data, isLoading } = useListJobs(queryParams, {
     query: { queryKey: getListJobsQueryKey(queryParams) },
   });
+
+  const { data: savedData } = useListSavedJobs({
+    query: {
+      enabled: !!user,
+      queryKey: getListSavedJobsQueryKey(),
+    },
+  });
+
+  const savedJobIds = new Set((savedData?.savedJobs ?? []).map((s) => s.jobId));
+
+  const { mutate: saveJob } = useSaveJob();
+  const { mutate: unsaveJob } = useUnsaveJob();
+
+  const handleBookmark = (e: React.MouseEvent, jobId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) return;
+    if (savedJobIds.has(jobId)) {
+      unsaveJob({ jobId }, {
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: getListSavedJobsQueryKey() }),
+      });
+    } else {
+      saveJob({ data: { jobId } }, {
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: getListSavedJobsQueryKey() }),
+      });
+    }
+  };
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 0;
 
@@ -55,13 +97,20 @@ export default function JobsPage() {
           <div className="bg-card border border-border rounded-xl p-5 space-y-5 sticky top-20">
             <div>
               <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Search</label>
-              <input
-                type="search"
-                value={filters.search}
-                onChange={(e) => { setFilters((f) => ({ ...f, search: e.target.value })); setPage(0); }}
-                placeholder="Search jobs..."
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-              />
+              <div className="relative">
+                <input
+                  type="search"
+                  value={filters.search}
+                  onChange={(e) => { setFilters((f) => ({ ...f, search: e.target.value })); setPage(0); }}
+                  placeholder="Search jobs..."
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary pr-8"
+                />
+                {filters.search && debouncedSearch !== filters.search && (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
@@ -133,40 +182,56 @@ export default function JobsPage() {
           ) : (
             <>
               <p className="text-sm text-muted-foreground">{data?.total ?? 0} jobs found</p>
-              {data?.jobs.map((job) => (
-                <Link
-                  key={job.id}
-                  to={`/jobs/${job.id}`}
-                  className="group block bg-card border border-border rounded-xl p-5 hover:border-primary hover:shadow-md transition-all"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                      {job.title}
-                    </h3>
-                    <StatusBadge status={job.status} />
-                  </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{job.description}</p>
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {job.skills.slice(0, 4).map((s) => <SkillBadge key={s} skill={s} />)}
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                    <span className="font-medium text-primary">
-                      {formatBudget(job.budgetMin, job.budgetMax, job.budgetType)}
-                    </span>
-                    {job.remote && (
-                      <span className="flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
-                        </svg>
-                        Remote
+              {data?.jobs.map((job) => {
+                const isSaved = savedJobIds.has(job.id);
+                return (
+                  <Link
+                    key={job.id}
+                    to={`/jobs/${job.id}`}
+                    className="group block bg-card border border-border rounded-xl p-5 hover:border-primary hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                        {job.title}
+                      </h3>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <StatusBadge status={job.status} />
+                        {user && (
+                          <button
+                            onClick={(e) => handleBookmark(e, job.id)}
+                            title={isSaved ? "Remove from saved" : "Save job"}
+                            className={`p-1.5 rounded-lg transition-colors ${isSaved ? "text-primary bg-primary/10 hover:bg-primary/20" : "text-muted-foreground hover:text-primary hover:bg-accent"}`}
+                          >
+                            <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{job.description}</p>
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {job.skills.slice(0, 4).map((s) => <SkillBadge key={s} skill={s} />)}
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                      <span className="font-medium text-primary">
+                        {formatBudget(job.budgetMin, job.budgetMax, job.budgetType)}
                       </span>
-                    )}
-                    {job.location && <span>{job.location}</span>}
-                    <span>{job.proposalCount} proposals</span>
-                    <span className="ml-auto">{formatRelative(job.createdAt)}</span>
-                  </div>
-                </Link>
-              ))}
+                      {job.remote && (
+                        <span className="flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
+                          </svg>
+                          Remote
+                        </span>
+                      )}
+                      {job.location && <span>{job.location}</span>}
+                      <span>{job.proposalCount} proposals</span>
+                      <span className="ml-auto">{formatRelative(job.createdAt)}</span>
+                    </div>
+                  </Link>
+                );
+              })}
 
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 pt-4">

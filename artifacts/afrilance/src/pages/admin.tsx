@@ -5,6 +5,7 @@ import {
   useAdminListJobs,
   useAdminBlockUser,
   useAdminFlagJob,
+  useAdminVerifyUser,
   getGetAdminStatsQueryKey,
   getAdminListUsersQueryKey,
   getAdminListJobsQueryKey,
@@ -58,10 +59,33 @@ export default function AdminPage() {
 
   const { mutate: blockUser } = useAdminBlockUser();
   const { mutate: flagJob } = useAdminFlagJob();
+  const { mutate: verifyUser } = useAdminVerifyUser();
 
   const handleBlock = (id: number, isBlocked: boolean) => {
     blockUser(
       { id, data: { isBlocked: !isBlocked } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) });
+        },
+      },
+    );
+  };
+
+  const handleVerify = (id: number, isVerified: boolean) => {
+    verifyUser(
+      { id, data: { isVerified: !isVerified } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) });
+        },
+      },
+    );
+  };
+
+  const handleTopRated = (id: number, isTopRated: boolean) => {
+    verifyUser(
+      { id, data: { isTopRated: !isTopRated } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) });
@@ -200,56 +224,88 @@ export default function AdminPage() {
               </div>
             ) : (
               <div className="bg-card border border-border rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="border-b border-border bg-muted/30">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">User</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Role</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Location</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Joined</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {usersData.users.map((u) => (
-                      <tr key={u.id} className="hover:bg-muted/20">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <UserAvatar name={u.name} size="sm" />
-                            <span className="font-medium text-foreground">{u.name}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="capitalize text-muted-foreground">{u.role}</span>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">{u.location ?? "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{formatRelative(u.createdAt)}</td>
-                        <td className="px-4 py-3">
-                          {u.isBlocked ? (
-                            <span className="text-xs font-medium text-destructive">Blocked</span>
-                          ) : (
-                            <span className="text-xs font-medium text-emerald-600">Active</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          {u.role !== "admin" && (
-                            <button
-                              onClick={() => handleBlock(u.id, u.isBlocked)}
-                              className={`text-xs px-3 py-1 rounded-lg font-medium transition-colors ${
-                                u.isBlocked
-                                  ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                                  : "bg-destructive/10 text-destructive hover:bg-destructive/20"
-                              }`}
-                            >
-                              {u.isBlocked ? "Unblock" : "Block"}
-                            </button>
-                          )}
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-b border-border bg-muted/30">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">User</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Role</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Location</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Joined</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {usersData.users.map((u) => (
+                        <tr key={u.id} className="hover:bg-muted/20">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <UserAvatar name={u.name} size="sm" />
+                              <span className="font-medium text-foreground">{u.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="capitalize text-muted-foreground">{u.role}</span>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">{u.location ?? "—"}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{formatRelative(u.createdAt)}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col gap-1">
+                              {u.isBlocked ? (
+                                <span className="text-xs font-medium text-destructive">Blocked</span>
+                              ) : (
+                                <span className="text-xs font-medium text-emerald-600">Active</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-1">
+                              {u.role !== "admin" && (
+                                <button
+                                  onClick={() => handleBlock(u.id, u.isBlocked)}
+                                  className={`text-xs px-2 py-1 rounded-lg font-medium transition-colors ${
+                                    u.isBlocked
+                                      ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                      : "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                                  }`}
+                                >
+                                  {u.isBlocked ? "Unblock" : "Block"}
+                                </button>
+                              )}
+                              {u.role === "freelancer" && (
+                                <>
+                                  <button
+                                    onClick={() => handleVerify(u.id, (u as any).isVerified ?? false)}
+                                    title="Toggle verified status"
+                                    className={`text-xs px-2 py-1 rounded-lg font-medium transition-colors ${
+                                      (u as any).isVerified
+                                        ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                        : "bg-muted text-muted-foreground hover:bg-accent"
+                                    }`}
+                                  >
+                                    {(u as any).isVerified ? "✓ Verified" : "Verify"}
+                                  </button>
+                                  <button
+                                    onClick={() => handleTopRated(u.id, (u as any).isTopRated ?? false)}
+                                    title="Toggle top-rated status"
+                                    className={`text-xs px-2 py-1 rounded-lg font-medium transition-colors ${
+                                      (u as any).isTopRated
+                                        ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                                        : "bg-muted text-muted-foreground hover:bg-accent"
+                                    }`}
+                                  >
+                                    {(u as any).isTopRated ? "★ Top Rated" : "Top Rate"}
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

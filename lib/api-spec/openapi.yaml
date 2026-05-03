@@ -602,6 +602,52 @@ paths:
               schema:
                 $ref: "#/components/schemas/Payment"
 
+  # Saved Jobs
+  /saved-jobs:
+    get:
+      operationId: listSavedJobs
+      tags: [jobs]
+      summary: List saved jobs for current user
+      responses:
+        "200":
+          description: Saved jobs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedJobListResponse"
+    post:
+      operationId: saveJob
+      tags: [jobs]
+      summary: Save a job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveJobBody"
+      responses:
+        "201":
+          description: Job saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedJob"
+
+  /saved-jobs/{jobId}:
+    delete:
+      operationId: unsaveJob
+      tags: [jobs]
+      summary: Remove a saved job
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Unsaved
+
   # Admin
   /admin/users:
     get:
@@ -650,6 +696,31 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/AdminBlockUserBody"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  /admin/users/{id}/verify:
+    patch:
+      operationId: adminVerifyUser
+      tags: [admin]
+      summary: Admin - set verified/top-rated status on a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminVerifyUserBody"
       responses:
         "200":
           description: User updated
@@ -773,6 +844,10 @@ components:
           type: boolean
         isBlocked:
           type: boolean
+        isVerified:
+          type: boolean
+        isTopRated:
+          type: boolean
         completedJobs:
           type: integer
         createdAt:
@@ -787,6 +862,8 @@ components:
         - totalReviews
         - featured
         - isBlocked
+        - isVerified
+        - isTopRated
         - completedJobs
         - createdAt
 
@@ -828,6 +905,10 @@ components:
           type: ["number", "null"]
         category:
           type: ["string", "null"]
+        portfolioItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortfolioItem"
       required:
         - role
         - name
@@ -1420,6 +1501,54 @@ components:
           type: boolean
       required:
         - isBlocked
+
+    AdminVerifyUserBody:
+      type: object
+      properties:
+        isVerified:
+          type: boolean
+        isTopRated:
+          type: boolean
+
+    SavedJob:
+      type: object
+      properties:
+        id:
+          type: integer
+        profileId:
+          type: integer
+        jobId:
+          type: integer
+        createdAt:
+          type: string
+        job:
+          $ref: "#/components/schemas/Job"
+      required:
+        - id
+        - profileId
+        - jobId
+        - createdAt
+
+    SavedJobListResponse:
+      type: object
+      properties:
+        savedJobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/SavedJob"
+        total:
+          type: integer
+      required:
+        - savedJobs
+        - total
+
+    SaveJobBody:
+      type: object
+      properties:
+        jobId:
+          type: integer
+      required:
+        - jobId
 
     AdminFlagBody:
       type: object

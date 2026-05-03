@@ -5,6 +5,7 @@
  * AfriLance freelance marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { PortfolioItem } from "./portfolioItem";
 
 export interface UpsertProfileBody {
   role: string;
@@ -20,4 +21,5 @@ export interface UpsertProfileBody {
   hourlyRate?: number | null;
   /** @nullable */
   category?: string | null;
+  portfolioItems?: PortfolioItem[];
 }

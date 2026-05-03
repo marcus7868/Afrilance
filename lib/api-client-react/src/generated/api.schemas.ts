@@ -42,6 +42,8 @@ export interface Profile {
   totalReviews: number;
   featured: boolean;
   isBlocked: boolean;
+  isVerified: boolean;
+  isTopRated: boolean;
   completedJobs: number;
   createdAt: string;
 }
@@ -60,6 +62,7 @@ export interface UpsertProfileBody {
   hourlyRate?: number | null;
   /** @nullable */
   category?: string | null;
+  portfolioItems?: PortfolioItem[];
 }
 
 export interface FreelancerListResponse {
@@ -333,6 +336,28 @@ export interface AdminUserListResponse {
 
 export interface AdminBlockUserBody {
   isBlocked: boolean;
+}
+
+export interface AdminVerifyUserBody {
+  isVerified?: boolean;
+  isTopRated?: boolean;
+}
+
+export interface SavedJob {
+  id: number;
+  profileId: number;
+  jobId: number;
+  createdAt: string;
+  job?: Job;
+}
+
+export interface SavedJobListResponse {
+  savedJobs: SavedJob[];
+  total: number;
+}
+
+export interface SaveJobBody {
+  jobId: number;
 }
 
 export interface AdminFlagBody {

@@ -29,6 +29,8 @@ export interface Profile {
   totalReviews: number;
   featured: boolean;
   isBlocked: boolean;
+  isVerified: boolean;
+  isTopRated: boolean;
   completedJobs: number;
   createdAt: string;
 }

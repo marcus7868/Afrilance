@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "./UserAvatar";
-import { useGetMyProfile, getGetMyProfileQueryKey } from "@workspace/api-client-react";
+import { useGetMyProfile, getGetMyProfileQueryKey, useListNotifications, getListNotificationsQueryKey } from "@workspace/api-client-react";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -25,6 +25,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { data: profile } = useGetMyProfile({ query: { enabled: !!user, queryKey: getGetMyProfileQueryKey() } });
+
+  const notifParams = { limit: 1, offset: 0, unreadOnly: true };
+  const { data: notifData } = useListNotifications(notifParams, {
+    query: {
+      enabled: !!user,
+      queryKey: getListNotificationsQueryKey(notifParams),
+      refetchInterval: 30000,
+    },
+  });
+  const unreadCount = notifData?.total ?? 0;
 
   const isAdmin = profile?.role === "admin";
 
@@ -78,6 +88,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     Admin
                   </Link>
                 )}
+                {/* Notification Bell */}
+                <Link
+                  to="/notifications"
+                  className="relative p-1.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-primary"
+                  title="Notifications"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center px-0.5 leading-none">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </Link>
               </Show>
             </nav>
 
@@ -130,9 +155,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         <Link
                           to="/notifications"
                           onClick={() => setDropdownOpen(false)}
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-accent"
+                          className="flex items-center justify-between gap-2 px-4 py-2 text-sm text-foreground hover:bg-accent"
                         >
-                          Notifications
+                          <span>Notifications</span>
+                          {unreadCount > 0 && (
+                            <span className="bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+                              {unreadCount > 99 ? "99+" : unreadCount}
+                            </span>
+                          )}
                         </Link>
                         <Link
                           to="/payments"
@@ -221,8 +251,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     {item.label}
                   </Link>
                 ))}
-                <Link to="/notifications" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent rounded-lg">
-                  Notifications
+                <Link to="/notifications" onClick={() => setMobileOpen(false)} className="flex items-center justify-between px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent rounded-lg">
+                  <span>Notifications</span>
+                  {unreadCount > 0 && (
+                    <span className="bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
                 </Link>
                 <Link to="/payments" onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent rounded-lg">
                   Payments

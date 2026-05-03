@@ -24,6 +24,7 @@ import type {
   AdminStats,
   AdminUser,
   AdminUserListResponse,
+  AdminVerifyUserBody,
   ClientDashboard,
   ConversationListResponse,
   CreateJobBody,
@@ -50,6 +51,9 @@ import type {
   ProposalListResponse,
   Review,
   ReviewListResponse,
+  SaveJobBody,
+  SavedJob,
+  SavedJobListResponse,
   SendMessageBody,
   UpdateJobBody,
   UpdateProposalStatusBody,
@@ -2526,6 +2530,251 @@ export const useReleasePayment = <
 };
 
 /**
+ * @summary List saved jobs for current user
+ */
+export const getListSavedJobsUrl = () => {
+  return `/api/saved-jobs`;
+};
+
+export const listSavedJobs = async (
+  options?: RequestInit,
+): Promise<SavedJobListResponse> => {
+  return customFetch<SavedJobListResponse>(getListSavedJobsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSavedJobsQueryKey = () => {
+  return [`/api/saved-jobs`] as const;
+};
+
+export const getListSavedJobsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSavedJobs>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSavedJobs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSavedJobsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSavedJobs>>> = ({
+    signal,
+  }) => listSavedJobs({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSavedJobs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSavedJobsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSavedJobs>>
+>;
+export type ListSavedJobsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List saved jobs for current user
+ */
+
+export function useListSavedJobs<
+  TData = Awaited<ReturnType<typeof listSavedJobs>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSavedJobs>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSavedJobsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Save a job
+ */
+export const getSaveJobUrl = () => {
+  return `/api/saved-jobs`;
+};
+
+export const saveJob = async (
+  saveJobBody: SaveJobBody,
+  options?: RequestInit,
+): Promise<SavedJob> => {
+  return customFetch<SavedJob>(getSaveJobUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(saveJobBody),
+  });
+};
+
+export const getSaveJobMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveJob>>,
+    TError,
+    { data: BodyType<SaveJobBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof saveJob>>,
+  TError,
+  { data: BodyType<SaveJobBody> },
+  TContext
+> => {
+  const mutationKey = ["saveJob"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof saveJob>>,
+    { data: BodyType<SaveJobBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return saveJob(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SaveJobMutationResult = NonNullable<
+  Awaited<ReturnType<typeof saveJob>>
+>;
+export type SaveJobMutationBody = BodyType<SaveJobBody>;
+export type SaveJobMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Save a job
+ */
+export const useSaveJob = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof saveJob>>,
+    TError,
+    { data: BodyType<SaveJobBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof saveJob>>,
+  TError,
+  { data: BodyType<SaveJobBody> },
+  TContext
+> => {
+  return useMutation(getSaveJobMutationOptions(options));
+};
+
+/**
+ * @summary Remove a saved job
+ */
+export const getUnsaveJobUrl = (jobId: number) => {
+  return `/api/saved-jobs/${jobId}`;
+};
+
+export const unsaveJob = async (
+  jobId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getUnsaveJobUrl(jobId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getUnsaveJobMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unsaveJob>>,
+    TError,
+    { jobId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unsaveJob>>,
+  TError,
+  { jobId: number },
+  TContext
+> => {
+  const mutationKey = ["unsaveJob"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unsaveJob>>,
+    { jobId: number }
+  > = (props) => {
+    const { jobId } = props ?? {};
+
+    return unsaveJob(jobId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnsaveJobMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unsaveJob>>
+>;
+
+export type UnsaveJobMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove a saved job
+ */
+export const useUnsaveJob = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unsaveJob>>,
+    TError,
+    { jobId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unsaveJob>>,
+  TError,
+  { jobId: number },
+  TContext
+> => {
+  return useMutation(getUnsaveJobMutationOptions(options));
+};
+
+/**
  * @summary Admin - list all users
  */
 export const getAdminListUsersUrl = (params?: AdminListUsersParams) => {
@@ -2704,6 +2953,93 @@ export const useAdminBlockUser = <
   TContext
 > => {
   return useMutation(getAdminBlockUserMutationOptions(options));
+};
+
+/**
+ * @summary Admin - set verified/top-rated status on a user
+ */
+export const getAdminVerifyUserUrl = (id: number) => {
+  return `/api/admin/users/${id}/verify`;
+};
+
+export const adminVerifyUser = async (
+  id: number,
+  adminVerifyUserBody: AdminVerifyUserBody,
+  options?: RequestInit,
+): Promise<AdminUser> => {
+  return customFetch<AdminUser>(getAdminVerifyUserUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(adminVerifyUserBody),
+  });
+};
+
+export const getAdminVerifyUserMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminVerifyUser>>,
+    TError,
+    { id: number; data: BodyType<AdminVerifyUserBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminVerifyUser>>,
+  TError,
+  { id: number; data: BodyType<AdminVerifyUserBody> },
+  TContext
+> => {
+  const mutationKey = ["adminVerifyUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminVerifyUser>>,
+    { id: number; data: BodyType<AdminVerifyUserBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return adminVerifyUser(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminVerifyUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminVerifyUser>>
+>;
+export type AdminVerifyUserMutationBody = BodyType<AdminVerifyUserBody>;
+export type AdminVerifyUserMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Admin - set verified/top-rated status on a user
+ */
+export const useAdminVerifyUser = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminVerifyUser>>,
+    TError,
+    { id: number; data: BodyType<AdminVerifyUserBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminVerifyUser>>,
+  TError,
+  { id: number; data: BodyType<AdminVerifyUserBody> },
+  TContext
+> => {
+  return useMutation(getAdminVerifyUserMutationOptions(options));
 };
 
 /**

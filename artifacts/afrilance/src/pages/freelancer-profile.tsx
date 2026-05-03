@@ -2,7 +2,6 @@ import { useParams, useLocation } from "wouter";
 import {
   useGetProfile,
   useListProfileReviews,
-  useListJobs,
   getGetProfileQueryKey,
   getListProfileReviewsQueryKey,
 } from "@workspace/api-client-react";
@@ -12,6 +11,15 @@ import { StarRating } from "@/components/StarRating";
 import { UserAvatar } from "@/components/UserAvatar";
 import { formatRelative } from "@/lib/format";
 import { Show } from "@clerk/react";
+import { VerifiedBadge, TopRatedBadge } from "./freelancers";
+
+type PortfolioItem = {
+  id: number;
+  title: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  projectUrl?: string | null;
+};
 
 export default function FreelancerProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -53,6 +61,8 @@ export default function FreelancerProfilePage() {
     );
   }
 
+  const portfolioItems = (profile.portfolioItems ?? []) as PortfolioItem[];
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <button
@@ -73,7 +83,11 @@ export default function FreelancerProfilePage() {
             <div className="flex items-start gap-5">
               <UserAvatar name={profile.name} avatarUrl={profile.avatarUrl} size="xl" />
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl font-bold text-foreground">{profile.name}</h1>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl font-bold text-foreground">{profile.name}</h1>
+                  {profile.isVerified && <VerifiedBadge />}
+                  {profile.isTopRated && <TopRatedBadge />}
+                </div>
                 {profile.category && (
                   <div className="text-sm text-muted-foreground mt-0.5">{profile.category}</div>
                 )}
@@ -115,6 +129,48 @@ export default function FreelancerProfilePage() {
               <h2 className="font-semibold text-foreground mb-3">Skills</h2>
               <div className="flex flex-wrap gap-2">
                 {profile.skills.map((s) => <SkillBadge key={s} skill={s} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Portfolio */}
+          {portfolioItems.length > 0 && (
+            <div className="bg-card border border-border rounded-xl p-6">
+              <h2 className="font-semibold text-foreground mb-4">Portfolio</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {portfolioItems.map((item) => (
+                  <div key={item.id} className="border border-border rounded-xl overflow-hidden group">
+                    {item.imageUrl && (
+                      <div className="aspect-video bg-muted overflow-hidden">
+                        <img
+                          src={item.imageUrl}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = "none"; }}
+                        />
+                      </div>
+                    )}
+                    <div className="p-4">
+                      <h3 className="font-semibold text-sm text-foreground">{item.title}</h3>
+                      {item.description && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
+                      )}
+                      {item.projectUrl && (
+                        <a
+                          href={item.projectUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2 font-medium"
+                        >
+                          View Project
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -164,6 +220,28 @@ export default function FreelancerProfilePage() {
             </div>
           )}
 
+          {(profile.isVerified || profile.isTopRated) && (
+            <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Badges</h3>
+              {profile.isVerified && (
+                <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Identity Verified
+                </div>
+              )}
+              {profile.isTopRated && (
+                <div className="flex items-center gap-2 text-sm text-amber-700">
+                  <svg className="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  Top Rated Freelancer
+                </div>
+              )}
+            </div>
+          )}
+
           <Show when="signed-in">
             <div className="bg-card border border-border rounded-xl p-5">
               <h3 className="font-semibold text-foreground mb-3">Work with {profile.name?.split(" ")[0]}</h3>
@@ -187,17 +265,6 @@ export default function FreelancerProfilePage() {
               </a>
             </div>
           </Show>
-
-          {profile.featured && (
-            <div className="bg-secondary/20 border border-secondary/30 rounded-xl p-4 text-center">
-              <div className="text-secondary font-semibold text-sm flex items-center justify-center gap-1.5">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                Top Rated Freelancer
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

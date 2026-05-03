@@ -16,6 +16,13 @@ import {
   AdminFlagJobParams,
   AdminFlagJobBody,
 } from "@workspace/api-zod";
+import { z } from "zod";
+
+const AdminVerifyUserParams = z.object({ id: z.coerce.number().int() });
+const AdminVerifyUserBody = z.object({
+  isVerified: z.boolean().optional(),
+  isTopRated: z.boolean().optional(),
+});
 
 const router = Router();
 
@@ -108,6 +115,34 @@ router.patch("/admin/users/:id/block", async (req, res): Promise<void> => {
     return;
   }
 
+  res.json(updated);
+});
+
+// PATCH /admin/users/:id/verify
+router.patch("/admin/users/:id/verify", async (req, res): Promise<void> => {
+  const auth = getAuth(req);
+  const userId = auth?.userId;
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const admin = await requireAdmin(userId);
+  if (!admin) { res.status(403).json({ error: "Admin access required" }); return; }
+
+  const params = AdminVerifyUserParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+
+  const parsed = AdminVerifyUserBody.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const updateData: Record<string, boolean> = {};
+  if (parsed.data.isVerified !== undefined) updateData.isVerified = parsed.data.isVerified;
+  if (parsed.data.isTopRated !== undefined) updateData.isTopRated = parsed.data.isTopRated;
+
+  const [updated] = await db
+    .update(profilesTable)
+    .set(updateData)
+    .where(eq(profilesTable.id, params.data.id))
+    .returning();
+
+  if (!updated) { res.status(404).json({ error: "User not found" }); return; }
   res.json(updated);
 });
 

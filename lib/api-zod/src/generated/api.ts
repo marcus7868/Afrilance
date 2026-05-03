@@ -41,6 +41,8 @@ export const GetMyProfileResponse = zod.object({
   totalReviews: zod.number(),
   featured: zod.boolean(),
   isBlocked: zod.boolean(),
+  isVerified: zod.boolean(),
+  isTopRated: zod.boolean(),
   completedJobs: zod.number(),
   createdAt: zod.string(),
 });
@@ -57,6 +59,17 @@ export const UpsertMyProfileBody = zod.object({
   skills: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
   category: zod.string().nullish(),
+  portfolioItems: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        title: zod.string(),
+        description: zod.string().nullish(),
+        imageUrl: zod.string().nullish(),
+        projectUrl: zod.string().nullish(),
+      }),
+    )
+    .optional(),
 });
 
 export const UpsertMyProfileResponse = zod.object({
@@ -83,6 +96,8 @@ export const UpsertMyProfileResponse = zod.object({
   totalReviews: zod.number(),
   featured: zod.boolean(),
   isBlocked: zod.boolean(),
+  isVerified: zod.boolean(),
+  isTopRated: zod.boolean(),
   completedJobs: zod.number(),
   createdAt: zod.string(),
 });
@@ -118,6 +133,8 @@ export const GetProfileResponse = zod.object({
   totalReviews: zod.number(),
   featured: zod.boolean(),
   isBlocked: zod.boolean(),
+  isVerified: zod.boolean(),
+  isTopRated: zod.boolean(),
   completedJobs: zod.number(),
   createdAt: zod.string(),
 });
@@ -162,6 +179,8 @@ export const ListFreelancersResponse = zod.object({
       totalReviews: zod.number(),
       featured: zod.boolean(),
       isBlocked: zod.boolean(),
+      isVerified: zod.boolean(),
+      isTopRated: zod.boolean(),
       completedJobs: zod.number(),
       createdAt: zod.string(),
     }),
@@ -704,6 +723,58 @@ export const ReleasePaymentResponse = zod.object({
 });
 
 /**
+ * @summary List saved jobs for current user
+ */
+export const ListSavedJobsResponse = zod.object({
+  savedJobs: zod.array(
+    zod.object({
+      id: zod.number(),
+      profileId: zod.number(),
+      jobId: zod.number(),
+      createdAt: zod.string(),
+      job: zod
+        .object({
+          id: zod.number(),
+          clientId: zod.number(),
+          title: zod.string(),
+          description: zod.string(),
+          category: zod.string(),
+          skills: zod.array(zod.string()),
+          budgetMin: zod.number().nullish(),
+          budgetMax: zod.number().nullish(),
+          budgetType: zod.string(),
+          location: zod.string().nullish(),
+          remote: zod.boolean(),
+          deadline: zod.string().nullish(),
+          status: zod.string(),
+          isFlagged: zod.boolean(),
+          proposalCount: zod.number(),
+          clientName: zod.string().nullish(),
+          clientAvatarUrl: zod.string().nullish(),
+          createdAt: zod.string(),
+          updatedAt: zod.string(),
+        })
+        .optional(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
+ * @summary Save a job
+ */
+export const SaveJobBody = zod.object({
+  jobId: zod.number(),
+});
+
+/**
+ * @summary Remove a saved job
+ */
+export const UnsaveJobParams = zod.object({
+  jobId: zod.coerce.number(),
+});
+
+/**
  * @summary Admin - list all users
  */
 export const AdminListUsersQueryParams = zod.object({
@@ -742,6 +813,30 @@ export const AdminBlockUserBody = zod.object({
 });
 
 export const AdminBlockUserResponse = zod.object({
+  id: zod.number(),
+  userId: zod.string(),
+  role: zod.string(),
+  name: zod.string(),
+  email: zod.string().nullish(),
+  location: zod.string().nullish(),
+  isBlocked: zod.boolean(),
+  completedJobs: zod.number(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Admin - set verified/top-rated status on a user
+ */
+export const AdminVerifyUserParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AdminVerifyUserBody = zod.object({
+  isVerified: zod.boolean().optional(),
+  isTopRated: zod.boolean().optional(),
+});
+
+export const AdminVerifyUserResponse = zod.object({
   id: zod.number(),
   userId: zod.string(),
   role: zod.string(),
