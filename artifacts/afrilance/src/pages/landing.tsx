@@ -30,7 +30,7 @@ export default function LandingPage() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/20 border border-secondary/30 text-secondary text-sm font-medium mb-6">
               <span>🥇</span>
-              #1 Freelance Marketplace in Africa
+              Freelance Marketplace in Africa
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-primary-foreground leading-tight mb-6">
               Find top African{" "}
