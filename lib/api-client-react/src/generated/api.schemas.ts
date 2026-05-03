@@ -44,6 +44,11 @@ export interface Profile {
   isBlocked: boolean;
   isVerified: boolean;
   isTopRated: boolean;
+  /** @nullable */
+  resumeUrl?: string | null;
+  /** @nullable */
+  verificationDocUrl?: string | null;
+  verificationStatus: string;
   completedJobs: number;
   createdAt: string;
 }
@@ -63,6 +68,10 @@ export interface UpsertProfileBody {
   /** @nullable */
   category?: string | null;
   portfolioItems?: PortfolioItem[];
+  /** @nullable */
+  resumeUrl?: string | null;
+  /** @nullable */
+  verificationDocUrl?: string | null;
 }
 
 export interface FreelancerListResponse {
@@ -325,6 +334,11 @@ export interface AdminUser {
   /** @nullable */
   location?: string | null;
   isBlocked: boolean;
+  isVerified?: boolean;
+  isTopRated?: boolean;
+  /** @nullable */
+  verificationDocUrl?: string | null;
+  verificationStatus?: string;
   completedJobs: number;
   createdAt: string;
 }
@@ -362,6 +376,24 @@ export interface SaveJobBody {
 
 export interface AdminFlagBody {
   isFlagged: boolean;
+}
+
+export interface RequestUploadUrlBody {
+  name: string;
+  size: number;
+  contentType: string;
+}
+
+export type RequestUploadUrlResponseMetadata = {
+  name: string;
+  size: number;
+  contentType: string;
+};
+
+export interface RequestUploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+  metadata: RequestUploadUrlResponseMetadata;
 }
 
 export interface AdminStats {

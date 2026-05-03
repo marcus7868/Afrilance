@@ -31,6 +31,11 @@ export interface Profile {
   isBlocked: boolean;
   isVerified: boolean;
   isTopRated: boolean;
+  /** @nullable */
+  resumeUrl?: string | null;
+  /** @nullable */
+  verificationDocUrl?: string | null;
+  verificationStatus: string;
   completedJobs: number;
   createdAt: string;
 }

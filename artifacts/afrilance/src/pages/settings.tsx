@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   useGetMyProfile,
   useUpsertMyProfile,
@@ -7,6 +7,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/UserAvatar";
+import { useFileUpload } from "@/hooks/useFileUpload";
 
 const CATEGORIES = [
   "Software Development", "Design & Creative", "Writing & Content",
@@ -25,6 +26,93 @@ type PortfolioItem = {
 
 let nextPortfolioId = Date.now();
 
+function UploadButton({
+  label,
+  hint,
+  accept,
+  maxSizeMB,
+  currentUrl,
+  onUploaded,
+  icon,
+}: {
+  label: string;
+  hint: string;
+  accept: string[];
+  maxSizeMB: number;
+  currentUrl: string | null | undefined;
+  onUploaded: (path: string) => void;
+  icon: React.ReactNode;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { uploadFile, isUploading, progress, error } = useFileUpload({
+    accept,
+    maxSizeMB,
+    onSuccess: onUploaded,
+  });
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await uploadFile(file);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  return (
+    <div className="border border-border rounded-xl p-4 bg-background">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-sm text-foreground">{label}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">{hint}</div>
+          {currentUrl && (
+            <a
+              href={`/api/storage${currentUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary hover:underline mt-1 inline-flex items-center gap-1"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              View current file
+            </a>
+          )}
+          {error && (
+            <p className="text-xs text-destructive mt-1">{error}</p>
+          )}
+          {isUploading && (
+            <div className="mt-2">
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={isUploading}
+          className="flex-shrink-0 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-medium hover:bg-primary/20 transition-colors disabled:opacity-50"
+        >
+          {currentUrl ? "Replace" : "Upload"}
+        </button>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        accept={accept.join(",")}
+        onChange={handleChange}
+      />
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { data: profile, isLoading } = useGetMyProfile({
@@ -41,11 +129,21 @@ export default function SettingsPage() {
     hourlyRate: "",
     category: "",
     portfolioItems: [] as PortfolioItem[],
+    avatarUrl: null as string | null,
+    resumeUrl: null as string | null,
+    verificationDocUrl: null as string | null,
   });
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
   const [portfolioTab, setPortfolioTab] = useState<"list" | "add" | number>("list");
   const [portfolioForm, setPortfolioForm] = useState({ title: "", description: "", imageUrl: "", projectUrl: "" });
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const { uploadFile: uploadAvatar, isUploading: avatarUploading, error: avatarError } = useFileUpload({
+    accept: ["image/"],
+    maxSizeMB: 5,
+    onSuccess: (path) => setForm((f) => ({ ...f, avatarUrl: path })),
+  });
 
   useEffect(() => {
     if (profile) {
@@ -58,6 +156,9 @@ export default function SettingsPage() {
         hourlyRate: profile.hourlyRate != null ? String(profile.hourlyRate) : "",
         category: profile.category ?? "",
         portfolioItems: (profile.portfolioItems ?? []) as PortfolioItem[],
+        avatarUrl: profile.avatarUrl ?? null,
+        resumeUrl: (profile as any).resumeUrl ?? null,
+        verificationDocUrl: (profile as any).verificationDocUrl ?? null,
       });
     }
   }, [profile]);
@@ -136,7 +237,10 @@ export default function SettingsPage() {
           hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : null,
           category: form.category || null,
           portfolioItems: form.portfolioItems,
-        },
+          avatarUrl: form.avatarUrl,
+          resumeUrl: form.resumeUrl,
+          verificationDocUrl: form.verificationDocUrl,
+        } as any,
       },
       {
         onSuccess: () => {
@@ -164,6 +268,8 @@ export default function SettingsPage() {
   const isAddingPortfolio = portfolioTab === "add";
   const showPortfolioForm = isEditing || isAddingPortfolio;
 
+  const verificationStatus = (profile as any)?.verificationStatus ?? "none";
+
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
@@ -171,15 +277,49 @@ export default function SettingsPage() {
         <p className="text-muted-foreground text-sm">Update your public profile information</p>
       </div>
 
-      {/* Profile preview */}
+      {/* Profile Picture */}
       <div className="flex items-center gap-4 mb-6 p-4 bg-card border border-border rounded-xl">
-        <UserAvatar name={profile?.name} avatarUrl={profile?.avatarUrl} size="lg" />
-        <div>
+        <div className="relative flex-shrink-0">
+          <UserAvatar name={profile?.name} avatarUrl={form.avatarUrl} size="lg" />
+          <button
+            type="button"
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={avatarUploading}
+            className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center shadow-md hover:opacity-90 transition-opacity disabled:opacity-50"
+            title="Upload profile photo"
+          >
+            {avatarUploading ? (
+              <svg className="w-3.5 h-3.5 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            ) : (
+              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            )}
+          </button>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (file) await uploadAvatar(file);
+              if (avatarInputRef.current) avatarInputRef.current.value = "";
+            }}
+          />
+        </div>
+        <div className="flex-1 min-w-0">
           <div className="font-semibold text-foreground">{profile?.name}</div>
           <div className="text-sm text-muted-foreground capitalize">{profile?.role}</div>
           {profile?.completedJobs != null && (
             <div className="text-xs text-muted-foreground">{profile.completedJobs} jobs completed</div>
           )}
+          {avatarError && <p className="text-xs text-destructive mt-1">{avatarError}</p>}
+          <p className="text-xs text-muted-foreground mt-1">Click the camera icon to upload a profile photo (JPG, PNG, WebP · max 5MB)</p>
         </div>
       </div>
 
@@ -285,6 +425,73 @@ export default function SettingsPage() {
                   className="w-full pl-7 pr-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
               </div>
+            </div>
+
+            {/* Documents Section */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-foreground">Documents</label>
+
+              <UploadButton
+                label="Resume / CV"
+                hint="PDF or Word document · max 10MB"
+                accept={["application/pdf", ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]}
+                maxSizeMB={10}
+                currentUrl={form.resumeUrl}
+                onUploaded={(path) => setForm((f) => ({ ...f, resumeUrl: path }))}
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                }
+              />
+
+              <UploadButton
+                label="Identity Verification Document"
+                hint="Ghana Card, Voter's ID, or ECOWAS card · JPG, PNG, or PDF · max 10MB"
+                accept={["image/jpeg", "image/png", "image/webp", "application/pdf"]}
+                maxSizeMB={10}
+                currentUrl={form.verificationDocUrl}
+                onUploaded={(path) => setForm((f) => ({ ...f, verificationDocUrl: path }))}
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                  </svg>
+                }
+              />
+
+              {/* Verification status banner */}
+              {verificationStatus === "pending" && (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Your ID is under review. You'll get the Verified badge once approved.
+                </div>
+              )}
+              {verificationStatus === "approved" && (
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Identity verified! Your Verified badge is active.
+                </div>
+              )}
+              {verificationStatus === "rejected" && (
+                <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Your ID was not accepted. Please upload a clearer photo and resubmit.
+                </div>
+              )}
+              {verificationStatus === "none" && form.verificationDocUrl && (
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Save your profile to submit your ID for admin review.
+                </div>
+              )}
             </div>
 
             {/* Portfolio */}

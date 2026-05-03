@@ -28,6 +28,8 @@ tags:
     description: Mock payment transactions
   - name: admin
     description: Admin operations
+  - name: storage
+    description: File storage operations
 
 paths:
   /healthz:
@@ -797,6 +799,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminStats"
 
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned URL for file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestUploadUrlBody"
+      responses:
+        "200":
+          description: Presigned upload URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestUploadUrlResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -848,6 +869,12 @@ components:
           type: boolean
         isTopRated:
           type: boolean
+        resumeUrl:
+          type: ["string", "null"]
+        verificationDocUrl:
+          type: ["string", "null"]
+        verificationStatus:
+          type: string
         completedJobs:
           type: integer
         createdAt:
@@ -864,6 +891,7 @@ components:
         - isBlocked
         - isVerified
         - isTopRated
+        - verificationStatus
         - completedJobs
         - createdAt
 
@@ -909,6 +937,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PortfolioItem"
+        resumeUrl:
+          type: ["string", "null"]
+        verificationDocUrl:
+          type: ["string", "null"]
       required:
         - role
         - name
@@ -1468,6 +1500,14 @@ components:
           type: ["string", "null"]
         isBlocked:
           type: boolean
+        isVerified:
+          type: boolean
+        isTopRated:
+          type: boolean
+        verificationDocUrl:
+          type: ["string", "null"]
+        verificationStatus:
+          type: string
         completedJobs:
           type: integer
         createdAt:
@@ -1557,6 +1597,45 @@ components:
           type: boolean
       required:
         - isFlagged
+
+    RequestUploadUrlBody:
+      type: object
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+        contentType:
+          type: string
+      required:
+        - name
+        - size
+        - contentType
+
+    RequestUploadUrlResponse:
+      type: object
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+        metadata:
+          type: object
+          properties:
+            name:
+              type: string
+            size:
+              type: integer
+            contentType:
+              type: string
+          required:
+            - name
+            - size
+            - contentType
+      required:
+        - uploadURL
+        - objectPath
+        - metadata
 
     AdminStats:
       type: object

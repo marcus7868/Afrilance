@@ -22,4 +22,8 @@ export interface UpsertProfileBody {
   /** @nullable */
   category?: string | null;
   portfolioItems?: PortfolioItem[];
+  /** @nullable */
+  resumeUrl?: string | null;
+  /** @nullable */
+  verificationDocUrl?: string | null;
 }

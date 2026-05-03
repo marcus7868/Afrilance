@@ -74,23 +74,22 @@ export default function AdminPage() {
 
   const handleVerify = (id: number, isVerified: boolean) => {
     verifyUser(
-      { id, data: { isVerified: !isVerified } },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) });
-        },
-      },
+      { id, data: { isVerified: !isVerified, verificationStatus: !isVerified ? "approved" : "none" } as any },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) }) },
     );
   };
 
   const handleTopRated = (id: number, isTopRated: boolean) => {
     verifyUser(
       { id, data: { isTopRated: !isTopRated } },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) });
-        },
-      },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) }) },
+    );
+  };
+
+  const handleVerificationStatus = (id: number, status: "approved" | "rejected") => {
+    verifyUser(
+      { id, data: { verificationStatus: status, ...(status === "approved" ? { isVerified: true } : {}) } as any },
+      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) }) },
     );
   };
 
@@ -233,6 +232,7 @@ export default function AdminPage() {
                         <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Location</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Joined</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">ID Verification</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Actions</th>
                       </tr>
                     </thead>
@@ -257,7 +257,58 @@ export default function AdminPage() {
                               ) : (
                                 <span className="text-xs font-medium text-emerald-600">Active</span>
                               )}
+                              {(u as any).isVerified && (
+                                <span className="text-xs font-medium text-blue-600">✓ Verified</span>
+                              )}
+                              {(u as any).isTopRated && (
+                                <span className="text-xs font-medium text-amber-600">★ Top Rated</span>
+                              )}
                             </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {u.role === "freelancer" ? (
+                              <div className="space-y-1.5">
+                                {(u as any).verificationDocUrl ? (
+                                  <>
+                                    <a
+                                      href={`/api/storage${(u as any).verificationDocUrl}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                                    >
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                      </svg>
+                                      View ID Doc
+                                    </a>
+                                    {(u as any).verificationStatus === "pending" || (u as any).verificationStatus === "none" ? (
+                                      <div className="flex gap-1">
+                                        <button
+                                          onClick={() => handleVerificationStatus(u.id, "approved")}
+                                          className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded font-medium"
+                                        >
+                                          Approve
+                                        </button>
+                                        <button
+                                          onClick={() => handleVerificationStatus(u.id, "rejected")}
+                                          className="text-xs px-2 py-0.5 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded font-medium"
+                                        >
+                                          Reject
+                                        </button>
+                                      </div>
+                                    ) : (u as any).verificationStatus === "approved" ? (
+                                      <span className="text-xs text-emerald-600 font-medium">Approved</span>
+                                    ) : (
+                                      <span className="text-xs text-destructive font-medium">Rejected</span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">No doc submitted</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap gap-1">

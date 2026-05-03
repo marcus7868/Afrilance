@@ -30,6 +30,9 @@ export const profilesTable = pgTable("profiles", {
   portfolioItems: jsonb("portfolio_items").notNull().default([]),
   isVerified: boolean("is_verified").notNull().default(false),
   isTopRated: boolean("is_top_rated").notNull().default(false),
+  resumeUrl: text("resume_url"),
+  verificationDocUrl: text("verification_doc_url"),
+  verificationStatus: text("verification_status").notNull().default("none"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

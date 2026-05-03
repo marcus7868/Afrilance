@@ -22,6 +22,7 @@ const AdminVerifyUserParams = z.object({ id: z.coerce.number().int() });
 const AdminVerifyUserBody = z.object({
   isVerified: z.boolean().optional(),
   isTopRated: z.boolean().optional(),
+  verificationStatus: z.enum(["none", "pending", "approved", "rejected"]).optional(),
 });
 
 const router = Router();
@@ -132,9 +133,10 @@ router.patch("/admin/users/:id/verify", async (req, res): Promise<void> => {
   const parsed = AdminVerifyUserBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  const updateData: Record<string, boolean> = {};
+  const updateData: Record<string, boolean | string> = {};
   if (parsed.data.isVerified !== undefined) updateData.isVerified = parsed.data.isVerified;
   if (parsed.data.isTopRated !== undefined) updateData.isTopRated = parsed.data.isTopRated;
+  if (parsed.data.verificationStatus !== undefined) updateData.verificationStatus = parsed.data.verificationStatus;
 
   const [updated] = await db
     .update(profilesTable)

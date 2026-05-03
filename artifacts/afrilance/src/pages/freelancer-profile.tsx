@@ -220,6 +220,23 @@ export default function FreelancerProfilePage() {
             </div>
           )}
 
+          {(profile as any).resumeUrl && (
+            <div className="bg-card border border-border rounded-xl p-5">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Resume / CV</h3>
+              <a
+                href={`/api/storage${(profile as any).resumeUrl}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 w-full px-3 py-2.5 bg-primary/10 text-primary rounded-lg text-sm font-medium hover:bg-primary/20 transition-colors"
+              >
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Download Resume
+              </a>
+            </div>
+          )}
+
           {(profile.isVerified || profile.isTopRated) && (
             <div className="bg-card border border-border rounded-xl p-4 space-y-2">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Badges</h3>

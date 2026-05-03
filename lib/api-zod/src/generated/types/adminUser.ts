@@ -16,6 +16,11 @@ export interface AdminUser {
   /** @nullable */
   location?: string | null;
   isBlocked: boolean;
+  isVerified?: boolean;
+  isTopRated?: boolean;
+  /** @nullable */
+  verificationDocUrl?: string | null;
+  verificationStatus?: string;
   completedJobs: number;
   createdAt: string;
 }

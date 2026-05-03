@@ -43,6 +43,9 @@ export const GetMyProfileResponse = zod.object({
   isBlocked: zod.boolean(),
   isVerified: zod.boolean(),
   isTopRated: zod.boolean(),
+  resumeUrl: zod.string().nullish(),
+  verificationDocUrl: zod.string().nullish(),
+  verificationStatus: zod.string(),
   completedJobs: zod.number(),
   createdAt: zod.string(),
 });
@@ -70,6 +73,8 @@ export const UpsertMyProfileBody = zod.object({
       }),
     )
     .optional(),
+  resumeUrl: zod.string().nullish(),
+  verificationDocUrl: zod.string().nullish(),
 });
 
 export const UpsertMyProfileResponse = zod.object({
@@ -98,6 +103,9 @@ export const UpsertMyProfileResponse = zod.object({
   isBlocked: zod.boolean(),
   isVerified: zod.boolean(),
   isTopRated: zod.boolean(),
+  resumeUrl: zod.string().nullish(),
+  verificationDocUrl: zod.string().nullish(),
+  verificationStatus: zod.string(),
   completedJobs: zod.number(),
   createdAt: zod.string(),
 });
@@ -135,6 +143,9 @@ export const GetProfileResponse = zod.object({
   isBlocked: zod.boolean(),
   isVerified: zod.boolean(),
   isTopRated: zod.boolean(),
+  resumeUrl: zod.string().nullish(),
+  verificationDocUrl: zod.string().nullish(),
+  verificationStatus: zod.string(),
   completedJobs: zod.number(),
   createdAt: zod.string(),
 });
@@ -181,6 +192,9 @@ export const ListFreelancersResponse = zod.object({
       isBlocked: zod.boolean(),
       isVerified: zod.boolean(),
       isTopRated: zod.boolean(),
+      resumeUrl: zod.string().nullish(),
+      verificationDocUrl: zod.string().nullish(),
+      verificationStatus: zod.string(),
       completedJobs: zod.number(),
       createdAt: zod.string(),
     }),
@@ -794,6 +808,10 @@ export const AdminListUsersResponse = zod.object({
       email: zod.string().nullish(),
       location: zod.string().nullish(),
       isBlocked: zod.boolean(),
+      isVerified: zod.boolean().optional(),
+      isTopRated: zod.boolean().optional(),
+      verificationDocUrl: zod.string().nullish(),
+      verificationStatus: zod.string().optional(),
       completedJobs: zod.number(),
       createdAt: zod.string(),
     }),
@@ -820,6 +838,10 @@ export const AdminBlockUserResponse = zod.object({
   email: zod.string().nullish(),
   location: zod.string().nullish(),
   isBlocked: zod.boolean(),
+  isVerified: zod.boolean().optional(),
+  isTopRated: zod.boolean().optional(),
+  verificationDocUrl: zod.string().nullish(),
+  verificationStatus: zod.string().optional(),
   completedJobs: zod.number(),
   createdAt: zod.string(),
 });
@@ -844,6 +866,10 @@ export const AdminVerifyUserResponse = zod.object({
   email: zod.string().nullish(),
   location: zod.string().nullish(),
   isBlocked: zod.boolean(),
+  isVerified: zod.boolean().optional(),
+  isTopRated: zod.boolean().optional(),
+  verificationDocUrl: zod.string().nullish(),
+  verificationStatus: zod.string().optional(),
   completedJobs: zod.number(),
   createdAt: zod.string(),
 });
@@ -931,4 +957,23 @@ export const GetAdminStatsResponse = zod.object({
   activeJobs: zod.number(),
   flaggedJobs: zod.number(),
   blockedUsers: zod.number(),
+});
+
+/**
+ * @summary Request a presigned URL for file upload
+ */
+export const RequestUploadUrlBody = zod.object({
+  name: zod.string(),
+  size: zod.number(),
+  contentType: zod.string(),
+});
+
+export const RequestUploadUrlResponse = zod.object({
+  uploadURL: zod.string(),
+  objectPath: zod.string(),
+  metadata: zod.object({
+    name: zod.string(),
+    size: zod.number(),
+    contentType: zod.string(),
+  }),
 });
