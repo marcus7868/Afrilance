@@ -49,7 +49,7 @@ const clerkAppearance = {
   options: {
     logoPlacement: "inside" as const,
     logoLinkUrl: basePath || "/",
-    logoImageUrl: `${window.location.origin}${basePath}/logo.svg`,
+    logoImageUrl: `${window.location.origin}${basePath}/afrilance-logo-nav.svg`,
   },
   variables: {
     colorPrimary: "hsl(151, 68%, 14%)",
