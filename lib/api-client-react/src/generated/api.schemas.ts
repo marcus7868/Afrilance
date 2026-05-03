@@ -430,7 +430,27 @@ export type ListJobsParams = {
   search?: string;
   limit?: number;
   offset?: number;
+  budgetType?: ListJobsBudgetType;
+  sortBy?: ListJobsSortBy;
 };
+
+export type ListJobsBudgetType =
+  (typeof ListJobsBudgetType)[keyof typeof ListJobsBudgetType];
+
+export const ListJobsBudgetType = {
+  fixed: "fixed",
+  hourly: "hourly",
+} as const;
+
+export type ListJobsSortBy =
+  (typeof ListJobsSortBy)[keyof typeof ListJobsSortBy];
+
+export const ListJobsSortBy = {
+  newest: "newest",
+  oldest: "oldest",
+  budget_asc: "budget_asc",
+  budget_desc: "budget_desc",
+} as const;
 
 export type GetConversationMessagesParams = {
   limit?: number;

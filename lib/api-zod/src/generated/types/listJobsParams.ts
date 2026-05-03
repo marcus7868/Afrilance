@@ -5,6 +5,8 @@
  * AfriLance freelance marketplace API
  * OpenAPI spec version: 0.1.0
  */
+import type { ListJobsBudgetType } from "./listJobsBudgetType";
+import type { ListJobsSortBy } from "./listJobsSortBy";
 
 export type ListJobsParams = {
   category?: string;
@@ -17,4 +19,6 @@ export type ListJobsParams = {
   search?: string;
   limit?: number;
   offset?: number;
+  budgetType?: ListJobsBudgetType;
+  sortBy?: ListJobsSortBy;
 };

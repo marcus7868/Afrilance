@@ -192,6 +192,16 @@ paths:
           in: query
           schema:
             type: integer
+        - name: budgetType
+          in: query
+          schema:
+            type: string
+            enum: [fixed, hourly]
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [newest, oldest, budget_asc, budget_desc]
       responses:
         "200":
           description: List of jobs

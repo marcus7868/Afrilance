@@ -216,6 +216,10 @@ export const ListJobsQueryParams = zod.object({
   search: zod.coerce.string().optional(),
   limit: zod.coerce.number().optional(),
   offset: zod.coerce.number().optional(),
+  budgetType: zod.enum(["fixed", "hourly"]).optional(),
+  sortBy: zod
+    .enum(["newest", "oldest", "budget_asc", "budget_desc"])
+    .optional(),
 });
 
 export const ListJobsResponse = zod.object({

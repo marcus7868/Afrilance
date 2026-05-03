@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, ilike, and, gte, lte, sql, or } from "drizzle-orm";
+import { eq, ilike, and, gte, lte, sql, or, asc, desc } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
 import { db, jobsTable, profilesTable } from "@workspace/db";
 import {
@@ -29,7 +29,7 @@ router.get("/jobs", async (req, res): Promise<void> => {
     return;
   }
 
-  const { category, skill, location, remote, minBudget, maxBudget, status, search, limit = 20, offset = 0 } = parsed.data;
+  const { category, skill, location, remote, minBudget, maxBudget, status, search, limit = 20, offset = 0, budgetType, sortBy } = parsed.data;
 
   const conditions = [eq(jobsTable.isFlagged, false)];
 
@@ -39,6 +39,7 @@ router.get("/jobs", async (req, res): Promise<void> => {
   if (remote !== undefined) conditions.push(eq(jobsTable.remote, remote));
   if (minBudget !== undefined) conditions.push(gte(jobsTable.budgetMin, minBudget));
   if (maxBudget !== undefined) conditions.push(lte(jobsTable.budgetMax, maxBudget));
+  if (budgetType) conditions.push(eq(jobsTable.budgetType, budgetType));
   if (status) conditions.push(eq(jobsTable.status, status));
   else conditions.push(eq(jobsTable.status, "open"));
 
@@ -50,6 +51,12 @@ router.get("/jobs", async (req, res): Promise<void> => {
       )!,
     );
   }
+
+  const orderByClause =
+    sortBy === "oldest" ? asc(jobsTable.createdAt) :
+    sortBy === "budget_asc" ? asc(jobsTable.budgetMin) :
+    sortBy === "budget_desc" ? desc(jobsTable.budgetMin) :
+    desc(jobsTable.createdAt);
 
   const jobs = await db
     .select({
@@ -78,7 +85,7 @@ router.get("/jobs", async (req, res): Promise<void> => {
     .where(and(...conditions))
     .limit(Number(limit))
     .offset(Number(offset))
-    .orderBy(jobsTable.createdAt);
+    .orderBy(orderByClause);
 
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)` })

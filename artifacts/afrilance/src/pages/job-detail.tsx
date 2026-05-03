@@ -7,9 +7,11 @@ import {
   useListJobProposals,
   useUpdateProposalStatus,
   useUpdateJob,
+  useListProfileReviews,
   getGetJobQueryKey,
   getListJobProposalsQueryKey,
   getGetMyProfileQueryKey,
+  getListProfileReviewsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Show } from "@clerk/react";
@@ -18,6 +20,7 @@ import { SkillBadge } from "@/components/SkillBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { UserAvatar } from "@/components/UserAvatar";
 import { StarRating } from "@/components/StarRating";
+import { ReviewModal } from "@/components/ReviewModal";
 import { formatBudget, formatDate, formatRelative } from "@/lib/format";
 
 export default function JobDetailPage() {
@@ -39,6 +42,25 @@ export default function JobDetailPage() {
     },
   });
 
+  const acceptedProposal = proposalsData?.proposals.find((p) => p.status === "accepted");
+
+  const { data: freelancerReviews } = useListProfileReviews(
+    acceptedProposal?.freelancerId ?? 0,
+    {
+      query: {
+        enabled: !!acceptedProposal?.freelancerId,
+        queryKey: getListProfileReviewsQueryKey(acceptedProposal?.freelancerId ?? 0),
+      },
+    },
+  );
+
+  const { data: clientReviews } = useListProfileReviews(job?.clientId ?? 0, {
+    query: {
+      enabled: !!job?.clientId && profile?.role === "freelancer",
+      queryKey: getListProfileReviewsQueryKey(job?.clientId ?? 0),
+    },
+  });
+
   const { mutate: createProposal, isPending: proposalPending } = useCreateProposal();
   const { mutate: updateStatus } = useUpdateProposalStatus();
   const { mutate: updateJob } = useUpdateJob();
@@ -47,6 +69,9 @@ export default function JobDetailPage() {
   const [proposal, setProposal] = useState({ coverLetter: "", bidAmount: "" });
   const [proposalError, setProposalError] = useState("");
   const [proposalSuccess, setProposalSuccess] = useState(false);
+
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
 
   if (isLoading) {
     return (
@@ -71,6 +96,29 @@ export default function JobDetailPage() {
 
   const isOwner = profile?.id === job.clientId;
   const isFreelancer = profile?.role === "freelancer";
+  const myAcceptedProposal = proposalsData?.proposals.find(
+    (p) => p.freelancerId === profile?.id && p.status === "accepted",
+  );
+
+  const jobIsClosedOrInProgress = job.status === "closed" || job.status === "in_progress";
+
+  const clientAlreadyReviewedFreelancer = freelancerReviews?.reviews.some(
+    (r) => r.reviewerId === profile?.id && r.jobId === jobId,
+  );
+
+  const freelancerAlreadyReviewedClient = clientReviews?.reviews.some(
+    (r) => r.reviewerId === profile?.id && r.jobId === jobId,
+  );
+
+  const canClientLeaveReview =
+    isOwner && jobIsClosedOrInProgress && !!acceptedProposal && !clientAlreadyReviewedFreelancer && !reviewSuccess;
+
+  const canFreelancerLeaveReview =
+    isFreelancer && jobIsClosedOrInProgress && !!myAcceptedProposal && !freelancerAlreadyReviewedClient && !reviewSuccess;
+
+  const reviewTarget = isOwner
+    ? { id: acceptedProposal?.freelancerId ?? 0, name: acceptedProposal?.freelancerName, role: "freelancer" as const }
+    : { id: job.clientId, name: job.clientName, role: "client" as const };
 
   const handleApply = (e: React.FormEvent) => {
     e.preventDefault();
@@ -298,6 +346,43 @@ export default function JobDetailPage() {
                 )}
               </div>
             )}
+
+            {/* Review CTA */}
+            {(canClientLeaveReview || canFreelancerLeaveReview) && (
+              <div className="bg-card border border-border rounded-xl p-5">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground text-sm">Leave a Review</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Share your experience to help the community
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowReviewModal(true)}
+                  className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-semibold transition-colors"
+                >
+                  Write a Review
+                </button>
+              </div>
+            )}
+
+            {reviewSuccess && (
+              <div className="bg-card border border-border rounded-xl p-5 text-center">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-foreground">Review submitted!</p>
+                <p className="text-xs text-muted-foreground mt-1">Thank you for your feedback.</p>
+              </div>
+            )}
           </Show>
 
           <Show when="signed-out">
@@ -377,6 +462,21 @@ export default function JobDetailPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Review modal */}
+      {showReviewModal && (
+        <ReviewModal
+          jobId={jobId}
+          revieweeId={reviewTarget.id}
+          revieweeName={reviewTarget.name}
+          revieweeRole={reviewTarget.role}
+          onClose={() => setShowReviewModal(false)}
+          onSuccess={() => {
+            setShowReviewModal(false);
+            setReviewSuccess(true);
+          }}
+        />
       )}
     </div>
   );
