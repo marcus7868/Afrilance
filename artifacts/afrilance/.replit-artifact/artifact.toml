@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "AfriLance"
+version = "1.0.0"
+id = "artifacts/afrilance"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20155
+
+[services.development]
+run = "pnpm --filter @workspace/afrilance run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/afrilance", "run", "build" ]
+publicDir = "artifacts/afrilance/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20155"
+BASE_PATH = "/"
