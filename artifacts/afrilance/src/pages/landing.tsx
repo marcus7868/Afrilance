@@ -29,7 +29,7 @@ export default function LandingPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/20 border border-secondary/30 text-secondary text-sm font-medium mb-6">
-              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
+              <span>🥇</span>
               #1 Freelance Marketplace in Africa
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-primary-foreground leading-tight mb-6">
