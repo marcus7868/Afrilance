@@ -209,9 +209,9 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Hourly Rate (USD)</label>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Hourly Rate (GHS)</label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₵</span>
                 <input
                   type="number"
                   min="1"

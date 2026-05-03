@@ -210,7 +210,7 @@ export default function JobDetailPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-semibold text-primary">${p.bidAmount}</div>
+                          <div className="font-semibold text-primary">₵{p.bidAmount}</div>
                           <StatusBadge status={p.status} />
                         </div>
                       </div>
@@ -344,9 +344,9 @@ export default function JobDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Your Bid (USD) *</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Your Bid (GHS) *</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₵</span>
                   <input
                     type="number"
                     required

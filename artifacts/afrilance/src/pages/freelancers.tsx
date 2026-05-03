@@ -83,7 +83,7 @@ export default function FreelancersPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Hourly Rate (USD/hr)</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Hourly Rate (GHS/hr)</label>
               <div className="flex gap-2">
                 <input
                   type="number"
@@ -172,7 +172,7 @@ export default function FreelancersPage() {
                         <span className="text-xs text-muted-foreground">No reviews yet</span>
                       )}
                       {f.hourlyRate && (
-                        <span className="text-sm font-semibold text-primary">${f.hourlyRate}/hr</span>
+                        <span className="text-sm font-semibold text-primary">₵{f.hourlyRate}/hr</span>
                       )}
                     </div>
 

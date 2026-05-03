@@ -159,7 +159,7 @@ export default function FreelancerProfilePage() {
         <div className="space-y-4">
           {profile.hourlyRate && (
             <div className="bg-card border border-border rounded-xl p-5">
-              <div className="text-2xl font-bold text-primary">${profile.hourlyRate}<span className="text-sm font-normal text-muted-foreground">/hr</span></div>
+              <div className="text-2xl font-bold text-primary">₵{profile.hourlyRate}<span className="text-sm font-normal text-muted-foreground">/hr</span></div>
               <div className="text-sm text-muted-foreground mt-0.5">Hourly Rate</div>
             </div>
           )}

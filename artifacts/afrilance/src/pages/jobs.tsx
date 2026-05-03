@@ -90,7 +90,7 @@ export default function JobsPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Budget (USD)</label>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Budget (GHS)</label>
               <div className="flex gap-2">
                 <input
                   type="number"

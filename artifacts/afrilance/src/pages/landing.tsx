@@ -228,7 +228,7 @@ export default function LandingPage() {
                   </div>
                   {f.hourlyRate && (
                     <div className="mt-3 text-sm font-semibold text-primary">
-                      ${f.hourlyRate}/hr
+                      ₵{f.hourlyRate}/hr
                     </div>
                   )}
                 </Link>

@@ -176,11 +176,11 @@ export default function PostJobPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">
-              Budget Range (USD) {form.budgetType === "hourly" ? "/hr" : ""}
+              Budget Range (GHS) {form.budgetType === "hourly" ? "/hr" : ""}
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₵</span>
                 <input
                   type="number"
                   min="0"
@@ -191,7 +191,7 @@ export default function PostJobPage() {
                 />
               </div>
               <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₵</span>
                 <input
                   type="number"
                   min="0"

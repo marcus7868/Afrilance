@@ -184,9 +184,9 @@ export default function PaymentsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Amount (USD) *</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">Amount (GHS) *</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₵</span>
                   <input
                     type="number"
                     required
