@@ -35,7 +35,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-              <img src={`${basePath}/logo.svg`} alt="AfriLance" className="h-8 w-auto" />
+              <img src={`${basePath}/afrilance-logo-nav.svg`} alt="AfriLance" className="h-9 w-auto object-contain" />
             </Link>
 
             {/* Desktop Nav */}
@@ -253,7 +253,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
-              <img src={`${basePath}/logo.svg`} alt="AfriLance" className="h-8 w-auto mb-2 brightness-200 invert" />
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-2xl font-bold tracking-tight">
+                  <span className="text-primary-foreground">Afri</span><span style={{ color: "#FF7A00" }}>Lance</span>
+                </span>
+              </div>
               <p className="text-sm text-primary-foreground/70 max-w-xs">
                 Connecting Africa's best talent with world-class opportunities.
               </p>
