@@ -700,6 +700,8 @@ export const ListPaymentsResponse = zod.object({
       freelancerId: zod.number(),
       amount: zod.number(),
       status: zod.string(),
+      paystackReference: zod.string().nullish(),
+      paystackTransferCode: zod.string().nullish(),
       jobTitle: zod.string().nullish(),
       freelancerName: zod.string().nullish(),
       clientName: zod.string().nullish(),
@@ -711,19 +713,50 @@ export const ListPaymentsResponse = zod.object({
 });
 
 /**
- * @summary Initiate a mock payment (escrow)
+ * @summary Initialize a Paystack payment and create escrow record
  */
 export const CreatePaymentBody = zod.object({
   jobId: zod.number(),
   freelancerId: zod.number(),
   amount: zod.number(),
+  clientEmail: zod.string(),
 });
 
 /**
- * @summary Release escrowed funds to freelancer
+ * @summary Verify a Paystack payment and mark as escrowed
+ */
+export const VerifyPaymentParams = zod.object({
+  reference: zod.coerce.string(),
+});
+
+export const VerifyPaymentResponse = zod.object({
+  id: zod.number(),
+  jobId: zod.number(),
+  clientId: zod.number(),
+  freelancerId: zod.number(),
+  amount: zod.number(),
+  status: zod.string(),
+  paystackReference: zod.string().nullish(),
+  paystackTransferCode: zod.string().nullish(),
+  jobTitle: zod.string().nullish(),
+  freelancerName: zod.string().nullish(),
+  clientName: zod.string().nullish(),
+  createdAt: zod.string(),
+  releasedAt: zod.string().nullish(),
+});
+
+/**
+ * @summary Release escrowed funds to freelancer via Paystack transfer
  */
 export const ReleasePaymentParams = zod.object({
   id: zod.coerce.number(),
+});
+
+export const ReleasePaymentBody = zod.object({
+  recipientCode: zod.string().optional(),
+  accountNumber: zod.string().optional(),
+  bankCode: zod.string().optional(),
+  accountName: zod.string().optional(),
 });
 
 export const ReleasePaymentResponse = zod.object({
@@ -733,6 +766,8 @@ export const ReleasePaymentResponse = zod.object({
   freelancerId: zod.number(),
   amount: zod.number(),
   status: zod.string(),
+  paystackReference: zod.string().nullish(),
+  paystackTransferCode: zod.string().nullish(),
   jobTitle: zod.string().nullish(),
   freelancerName: zod.string().nullish(),
   clientName: zod.string().nullish(),

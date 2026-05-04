@@ -564,7 +564,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClientDashboard"
 
-  # Payments (mock)
+  # Payments (Paystack escrow)
   /payments:
     get:
       operationId: listPayments
@@ -580,7 +580,7 @@ paths:
     post:
       operationId: createPayment
       tags: [payments]
-      summary: Initiate a mock payment (escrow)
+      summary: Initialize a Paystack payment and create escrow record
       requestBody:
         required: true
         content:
@@ -589,7 +589,26 @@ paths:
               $ref: "#/components/schemas/CreatePaymentBody"
       responses:
         "201":
-          description: Payment created
+          description: Payment initialized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InitializePaymentResponse"
+
+  /payments/verify/{reference}:
+    get:
+      operationId: verifyPayment
+      tags: [payments]
+      summary: Verify a Paystack payment and mark as escrowed
+      parameters:
+        - name: reference
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Payment verified
           content:
             application/json:
               schema:
@@ -599,13 +618,19 @@ paths:
     patch:
       operationId: releasePayment
       tags: [payments]
-      summary: Release escrowed funds to freelancer
+      summary: Release escrowed funds to freelancer via Paystack transfer
       parameters:
         - name: id
           in: path
           required: true
           schema:
             type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReleasePaymentBody"
       responses:
         "200":
           description: Payment released
@@ -613,6 +638,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Payment"
+
+  /payments/webhook:
+    post:
+      operationId: paystackWebhook
+      tags: [payments]
+      summary: Paystack webhook receiver
+      responses:
+        "200":
+          description: Acknowledged
 
   # Saved Jobs
   /saved-jobs:
@@ -1472,6 +1506,10 @@ components:
           type: number
         status:
           type: string
+        paystackReference:
+          type: ["string", "null"]
+        paystackTransferCode:
+          type: ["string", "null"]
         jobTitle:
           type: ["string", "null"]
         freelancerName:
@@ -1500,10 +1538,42 @@ components:
           type: integer
         amount:
           type: number
+        clientEmail:
+          type: string
       required:
         - jobId
         - freelancerId
         - amount
+        - clientEmail
+
+    InitializePaymentResponse:
+      type: object
+      properties:
+        paymentId:
+          type: integer
+        authorizationUrl:
+          type: string
+        accessCode:
+          type: string
+        reference:
+          type: string
+      required:
+        - paymentId
+        - authorizationUrl
+        - accessCode
+        - reference
+
+    ReleasePaymentBody:
+      type: object
+      properties:
+        recipientCode:
+          type: string
+        accountNumber:
+          type: string
+        bankCode:
+          type: string
+        accountName:
+          type: string
 
     PaymentListResponse:
       type: object

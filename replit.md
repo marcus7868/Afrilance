@@ -55,7 +55,7 @@ lib/
 - **Dashboard**: Role-aware dashboards (freelancer stats vs client stats)
 - **Messages**: Real-time conversation threads
 - **Notifications**: Per-user notifications with mark-read
-- **Payments**: Mock escrow system — escrowed → released
+- **Payments**: Real Paystack escrow — client pays via Paystack checkout (pending → escrowed), client releases to freelancer via Paystack Transfer API (escrowed → released). Webhook auto-confirms payments. Public key served from `/api/config/public`. Secret routes: `/api/payments`, `/api/payments/verify/:ref`, `/api/payments/:id/release`. Webhook (no auth): `/api/payments/webhook`.
 - **Settings**: Edit profile, skills, hourly rate, portfolio; upload profile picture, resume/CV, and ID verification doc (Ghana Card / Voter's ID / ECOWAS card)
 - **Admin**: Stats overview, user management (block/unblock/verify/top-rate), job moderation (flag/unflag), ID verification review (view doc, approve/reject with status sync)
 - **Freelancer Profiles**: Resume download button in sidebar when available

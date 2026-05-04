@@ -9,6 +9,8 @@ import {
   getClerkProxyHost,
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
+import configRouter from "./routes/config";
+import paymentsWebhookRouter from "./routes/payments-webhook";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -36,8 +38,17 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
-app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Public routes (no Clerk auth) — registered before clerkMiddleware
+app.use("/api", configRouter);
+app.use(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" }),
+  paymentsWebhookRouter,
+);
+
+app.use(express.json());
 
 app.use(
   clerkMiddleware((req) => ({

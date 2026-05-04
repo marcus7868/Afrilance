@@ -14,6 +14,10 @@ export interface Payment {
   amount: number;
   status: string;
   /** @nullable */
+  paystackReference?: string | null;
+  /** @nullable */
+  paystackTransferCode?: string | null;
+  /** @nullable */
   jobTitle?: string | null;
   /** @nullable */
   freelancerName?: string | null;

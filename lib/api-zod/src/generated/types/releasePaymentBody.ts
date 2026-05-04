@@ -6,9 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreatePaymentBody {
-  jobId: number;
-  freelancerId: number;
-  amount: number;
-  clientEmail: string;
+export interface ReleasePaymentBody {
+  recipientCode?: string;
+  accountNumber?: string;
+  bankCode?: string;
+  accountName?: string;
 }

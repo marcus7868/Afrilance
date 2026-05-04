@@ -303,6 +303,10 @@ export interface Payment {
   amount: number;
   status: string;
   /** @nullable */
+  paystackReference?: string | null;
+  /** @nullable */
+  paystackTransferCode?: string | null;
+  /** @nullable */
   jobTitle?: string | null;
   /** @nullable */
   freelancerName?: string | null;
@@ -317,6 +321,21 @@ export interface CreatePaymentBody {
   jobId: number;
   freelancerId: number;
   amount: number;
+  clientEmail: string;
+}
+
+export interface InitializePaymentResponse {
+  paymentId: number;
+  authorizationUrl: string;
+  accessCode: string;
+  reference: string;
+}
+
+export interface ReleasePaymentBody {
+  recipientCode?: string;
+  accountNumber?: string;
+  bankCode?: string;
+  accountName?: string;
 }
 
 export interface PaymentListResponse {
