@@ -41,6 +41,8 @@ export * from "./notification";
 export * from "./notificationListResponse";
 export * from "./payment";
 export * from "./paymentListResponse";
+export * from "./paystackBank";
+export * from "./paystackBankListResponse";
 export * from "./portfolioItem";
 export * from "./profile";
 export * from "./proposal";

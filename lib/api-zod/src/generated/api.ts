@@ -776,6 +776,19 @@ export const ReleasePaymentResponse = zod.object({
 });
 
 /**
+ * @summary List Ghana banks and mobile money providers supported by Paystack
+ */
+export const ListPaystackBanksResponse = zod.object({
+  banks: zod.array(
+    zod.object({
+      name: zod.string(),
+      code: zod.string(),
+      type: zod.string(),
+    }),
+  ),
+});
+
+/**
  * @summary List saved jobs for current user
  */
 export const ListSavedJobsResponse = zod.object({

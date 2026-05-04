@@ -648,6 +648,19 @@ paths:
         "200":
           description: Acknowledged
 
+  /payments/banks:
+    get:
+      operationId: listPaystackBanks
+      tags: [payments]
+      summary: List Ghana banks and mobile money providers supported by Paystack
+      responses:
+        "200":
+          description: Bank list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaystackBankListResponse"
+
   # Saved Jobs
   /saved-jobs:
     get:
@@ -1587,6 +1600,30 @@ components:
       required:
         - payments
         - total
+
+    PaystackBank:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        type:
+          type: string
+      required:
+        - name
+        - code
+        - type
+
+    PaystackBankListResponse:
+      type: object
+      properties:
+        banks:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaystackBank"
+      required:
+        - banks
 
     AdminUser:
       type: object

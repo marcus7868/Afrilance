@@ -48,6 +48,7 @@ import type {
   NotificationListResponse,
   Payment,
   PaymentListResponse,
+  PaystackBankListResponse,
   Profile,
   Proposal,
   ProposalListResponse,
@@ -2703,6 +2704,81 @@ export const usePaystackWebhook = <
 > => {
   return useMutation(getPaystackWebhookMutationOptions(options));
 };
+
+/**
+ * @summary List Ghana banks and mobile money providers supported by Paystack
+ */
+export const getListPaystackBanksUrl = () => {
+  return `/api/payments/banks`;
+};
+
+export const listPaystackBanks = async (
+  options?: RequestInit,
+): Promise<PaystackBankListResponse> => {
+  return customFetch<PaystackBankListResponse>(getListPaystackBanksUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListPaystackBanksQueryKey = () => {
+  return [`/api/payments/banks`] as const;
+};
+
+export const getListPaystackBanksQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPaystackBanks>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listPaystackBanks>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListPaystackBanksQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listPaystackBanks>>
+  > = ({ signal }) => listPaystackBanks({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPaystackBanks>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPaystackBanksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPaystackBanks>>
+>;
+export type ListPaystackBanksQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List Ghana banks and mobile money providers supported by Paystack
+ */
+
+export function useListPaystackBanks<
+  TData = Awaited<ReturnType<typeof listPaystackBanks>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listPaystackBanks>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListPaystackBanksQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List saved jobs for current user

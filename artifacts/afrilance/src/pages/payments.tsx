@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   useListPayments,
   useReleasePayment,
   useCreatePayment,
   useGetMyProfile,
+  useListPaystackBanks,
   getListPaymentsQueryKey,
   getGetMyProfileQueryKey,
+  getListPaystackBanksQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,6 +47,123 @@ function usePaystackScript() {
   return ready;
 }
 
+interface Bank { name: string; code: string; type: string }
+
+function BankPicker({
+  banks,
+  selected,
+  onSelect,
+}: {
+  banks: Bank[];
+  selected: Bank | null;
+  onSelect: (b: Bank) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  const ghipss = banks.filter(
+    (b) => b.type !== "mobile_money" && b.name.toLowerCase().includes(search.toLowerCase()),
+  );
+  const momo = banks.filter(
+    (b) => b.type === "mobile_money" && b.name.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 text-left"
+      >
+        {selected ? (
+          <span className="flex items-center gap-2">
+            <span className="font-medium text-foreground">{selected.name}</span>
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${selected.type === "mobile_money" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"}`}>
+              {selected.type === "mobile_money" ? "Mobile Money" : "Bank"}
+            </span>
+          </span>
+        ) : (
+          <span className="text-muted-foreground">Search and select a bank…</span>
+        )}
+        <svg className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute z-50 left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
+          <div className="p-2 border-b border-border">
+            <div className="relative">
+              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                autoFocus
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Type to search…"
+                className="w-full pl-8 pr-3 py-1.5 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+          </div>
+
+          <div className="max-h-56 overflow-y-auto">
+            {momo.length > 0 && (
+              <>
+                <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-orange-600 bg-orange-50 dark:bg-orange-950/20">
+                  Mobile Money
+                </div>
+                {momo.map((b) => (
+                  <button
+                    key={b.code}
+                    type="button"
+                    onClick={() => { onSelect(b); setOpen(false); setSearch(""); }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2"
+                  >
+                    <span className="flex-1 font-medium">{b.name}</span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700">MoMo</span>
+                  </button>
+                ))}
+              </>
+            )}
+            {ghipss.length > 0 && (
+              <>
+                <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 dark:bg-blue-950/20">
+                  Banks
+                </div>
+                {ghipss.map((b) => (
+                  <button
+                    key={b.code}
+                    type="button"
+                    onClick={() => { onSelect(b); setOpen(false); setSearch(""); }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center justify-between"
+                  >
+                    <span className="font-medium">{b.name}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">{b.code}</span>
+                  </button>
+                ))}
+              </>
+            )}
+            {momo.length === 0 && ghipss.length === 0 && (
+              <div className="px-3 py-6 text-center text-sm text-muted-foreground">No banks match "{search}"</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PaymentsPage() {
   const queryClient = useQueryClient();
   const { user } = useUser();
@@ -53,17 +172,24 @@ export default function PaymentsPage() {
 
   const { data: profile } = useGetMyProfile({ query: { queryKey: getGetMyProfileQueryKey() } });
   const { data, isLoading } = useListPayments({ query: { queryKey: getListPaymentsQueryKey() } });
+  const { data: banksData, isLoading: banksLoading } = useListPaystackBanks({
+    query: { queryKey: getListPaystackBanksQueryKey(), staleTime: 60 * 60 * 1000 },
+  });
   const { mutate: create, isPending: creating } = useCreatePayment();
   const { mutate: release, isPending: releasing } = useReleasePayment();
 
   const [showCreate, setShowCreate] = useState(false);
   const [showRelease, setShowRelease] = useState<number | null>(null);
   const [form, setForm] = useState({ jobId: "", freelancerId: "", amount: "" });
-  const [releaseForm, setReleaseForm] = useState({ accountNumber: "", bankCode: "", accountName: "" });
+  const [selectedBank, setSelectedBank] = useState<Bank | null>(null);
+  const [releaseForm, setReleaseForm] = useState({ accountNumber: "", accountName: "" });
   const [createError, setCreateError] = useState("");
   const [releaseError, setReleaseError] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [verifyMsg, setVerifyMsg] = useState("");
+
+  const banks = banksData?.banks ?? [];
+  const isMoMo = selectedBank?.type === "mobile_money";
 
   const openPaystackCheckout = useCallback(
     (authorizationUrl: string, reference: string, _paymentId: number) => {
@@ -83,8 +209,8 @@ export default function PaymentsPage() {
     setVerifyMsg("");
     try {
       const res = await fetch(`/api/payments/verify/${ref}`);
-      const data = await res.json();
-      if (!res.ok) { setVerifyMsg(data.error ?? "Verification failed"); }
+      const json = await res.json();
+      if (!res.ok) { setVerifyMsg(json.error ?? "Verification failed"); }
       else {
         sessionStorage.removeItem("pending_paystack_ref");
         setVerifyMsg("Payment verified and held in escrow!");
@@ -109,11 +235,10 @@ export default function PaymentsPage() {
     }
     const clientEmail = user?.primaryEmailAddress?.emailAddress ?? "";
     if (!clientEmail) {
-      setCreateError("No email found on your account. Please update your Clerk profile.");
+      setCreateError("No email found on your account.");
       return;
     }
     setCreateError("");
-
     create(
       {
         data: {
@@ -137,21 +262,24 @@ export default function PaymentsPage() {
 
   const handleRelease = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!showRelease) return;
+    if (!showRelease || !selectedBank) return;
     setReleaseError("");
 
-    const body: Record<string, string> = {};
-    if (releaseForm.accountNumber) body.accountNumber = releaseForm.accountNumber;
-    if (releaseForm.bankCode) body.bankCode = releaseForm.bankCode;
-    if (releaseForm.accountName) body.accountName = releaseForm.accountName;
-
     release(
-      { id: showRelease, data: body },
+      {
+        id: showRelease,
+        data: {
+          accountNumber: releaseForm.accountNumber,
+          bankCode: selectedBank.code,
+          accountName: releaseForm.accountName,
+        },
+      },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListPaymentsQueryKey() });
           setShowRelease(null);
-          setReleaseForm({ accountNumber: "", bankCode: "", accountName: "" });
+          setSelectedBank(null);
+          setReleaseForm({ accountNumber: "", accountName: "" });
         },
         onError: (err: any) => {
           setReleaseError(err?.response?.data?.error ?? "Transfer failed");
@@ -161,7 +289,6 @@ export default function PaymentsPage() {
   };
 
   const pendingRef = typeof window !== "undefined" ? sessionStorage.getItem("pending_paystack_ref") : null;
-
   const totalPending = data?.payments.filter((p) => p.status === "pending").reduce((s, p) => s + p.amount, 0) ?? 0;
   const totalEscrowed = data?.payments.filter((p) => p.status === "escrowed").reduce((s, p) => s + p.amount, 0) ?? 0;
   const totalReleased = data?.payments.filter((p) => p.status === "released").reduce((s, p) => s + p.amount, 0) ?? 0;
@@ -225,11 +352,12 @@ export default function PaymentsPage() {
         <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">How Escrow Works</h3>
         <ol className="text-xs text-blue-700 dark:text-blue-300 space-y-0.5 list-decimal list-inside">
           <li>Client creates a payment — funds are charged via Paystack and held in escrow</li>
-          <li>Work is completed by the freelancer</li>
-          <li>Client releases the payment — funds are transferred directly to the freelancer's bank account</li>
+          <li>Freelancer completes the work</li>
+          <li>Client releases — funds are transferred to the freelancer's bank account or MoMo wallet</li>
         </ol>
       </div>
 
+      {/* Payment list */}
       {isLoading ? (
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
@@ -252,15 +380,13 @@ export default function PaymentsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-foreground truncate">{p.jobTitle ?? `Job #${p.jobId}`}</div>
                   <div className="text-sm text-muted-foreground mt-0.5">
-                    {profile?.role === "freelancer"
-                      ? `From ${p.clientName ?? "Client"}`
-                      : `To ${p.freelancerName ?? "Freelancer"}`}
+                    {profile?.role === "freelancer" ? `From ${p.clientName ?? "Client"}` : `To ${p.freelancerName ?? "Freelancer"}`}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1 space-x-2">
+                  <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
                     <span>{formatRelative(p.createdAt)}</span>
                     {p.releasedAt && <span>· Released {formatDate(p.releasedAt)}</span>}
                     {p.paystackReference && (
-                      <span className="font-mono opacity-60">ref: {p.paystackReference.slice(-8)}</span>
+                      <span className="font-mono opacity-50">#{p.paystackReference.slice(-8)}</span>
                     )}
                   </div>
                 </div>
@@ -269,7 +395,12 @@ export default function PaymentsPage() {
                   <StatusBadge status={p.status} />
                   {p.status === "escrowed" && profile?.role === "client" && profile.id === p.clientId && (
                     <button
-                      onClick={() => { setShowRelease(p.id); setReleaseError(""); }}
+                      onClick={() => {
+                        setShowRelease(p.id);
+                        setSelectedBank(null);
+                        setReleaseForm({ accountNumber: "", accountName: "" });
+                        setReleaseError("");
+                      }}
                       className="mt-2 block text-xs px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
                     >
                       Release to Freelancer
@@ -288,7 +419,7 @@ export default function PaymentsPage() {
                     </button>
                   )}
                   {p.paystackTransferCode && (
-                    <div className="mt-1 text-xs text-green-600 font-mono">Transfer sent</div>
+                    <div className="mt-1 text-xs text-green-600 font-medium">Transfer sent ✓</div>
                   )}
                 </div>
               </div>
@@ -314,16 +445,12 @@ export default function PaymentsPage() {
             </p>
             <form onSubmit={handleCreate} className="space-y-4">
               {createError && (
-                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-                  {createError}
-                </div>
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">{createError}</div>
               )}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">Job ID *</label>
                 <input
-                  type="number"
-                  required
-                  value={form.jobId}
+                  type="number" required value={form.jobId}
                   onChange={(e) => setForm((f) => ({ ...f, jobId: e.target.value }))}
                   placeholder="Enter job ID"
                   className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -332,9 +459,7 @@ export default function PaymentsPage() {
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">Freelancer Profile ID *</label>
                 <input
-                  type="number"
-                  required
-                  value={form.freelancerId}
+                  type="number" required value={form.freelancerId}
                   onChange={(e) => setForm((f) => ({ ...f, freelancerId: e.target.value }))}
                   placeholder="Enter freelancer profile ID"
                   className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -345,11 +470,7 @@ export default function PaymentsPage() {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">₵</span>
                   <input
-                    type="number"
-                    required
-                    min="1"
-                    step="0.01"
-                    value={form.amount}
+                    type="number" required min="1" step="0.01" value={form.amount}
                     onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                     placeholder="500"
                     className="w-full pl-7 pr-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -361,8 +482,7 @@ export default function PaymentsPage() {
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  disabled={creating || !paystackReady}
+                  type="submit" disabled={creating || !paystackReady}
                   className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50"
                 >
                   {creating ? "Initializing..." : "Pay with Paystack"}
@@ -377,8 +497,8 @@ export default function PaymentsPage() {
       {showRelease !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-foreground">Release Payment to Freelancer</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-foreground">Release to Freelancer</h2>
               <button onClick={() => setShowRelease(null)} className="text-muted-foreground hover:text-foreground">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -386,60 +506,80 @@ export default function PaymentsPage() {
               </button>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Provide the freelancer's bank details to transfer funds. This action is irreversible.
+              Enter the freelancer's payout details. Funds will be sent instantly via Paystack.
             </p>
+
             <form onSubmit={handleRelease} className="space-y-4">
               {releaseError && (
-                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-                  {releaseError}
-                </div>
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">{releaseError}</div>
               )}
+
+              {/* Bank / MoMo picker */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Account Number *</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Bank or Mobile Money Provider *
+                </label>
+                {banksLoading ? (
+                  <div className="h-10 bg-muted rounded-lg animate-pulse" />
+                ) : (
+                  <BankPicker
+                    banks={banks}
+                    selected={selectedBank}
+                    onSelect={(b) => {
+                      setSelectedBank(b);
+                      setReleaseForm((f) => ({ ...f, accountNumber: "" }));
+                    }}
+                  />
+                )}
+                {selectedBank && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Code: <span className="font-mono">{selectedBank.code}</span>
+                    {isMoMo && " · Enter the registered phone number below"}
+                  </p>
+                )}
+              </div>
+
+              {/* Account number / phone number */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  {isMoMo ? "Phone Number *" : "Account Number *"}
+                </label>
                 <input
-                  type="text"
-                  required
-                  value={releaseForm.accountNumber}
+                  type="text" required value={releaseForm.accountNumber}
                   onChange={(e) => setReleaseForm((f) => ({ ...f, accountNumber: e.target.value }))}
-                  placeholder="e.g. 0123456789"
+                  placeholder={isMoMo ? "e.g. 0241234567" : "e.g. 1234567890"}
                   className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
+
+              {/* Account name */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Bank Code *</label>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  {isMoMo ? "Registered Name *" : "Account Name *"}
+                </label>
                 <input
-                  type="text"
-                  required
-                  value={releaseForm.bankCode}
-                  onChange={(e) => setReleaseForm((f) => ({ ...f, bankCode: e.target.value }))}
-                  placeholder="e.g. 030100 (GCB Bank)"
-                  className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1.5">Account Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={releaseForm.accountName}
+                  type="text" required value={releaseForm.accountName}
                   onChange={(e) => setReleaseForm((f) => ({ ...f, accountName: e.target.value }))}
-                  placeholder="Full name on the account"
+                  placeholder={isMoMo ? "Full name on the MoMo account" : "Full name on the bank account"}
                   className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
+
+              {/* Warning */}
               <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-700 dark:text-amber-300">
-                This will initiate a bank transfer via Paystack. Make sure the details are correct before proceeding.
+                This initiates a real bank/MoMo transfer via Paystack. Double-check all details — this action is irreversible.
               </div>
+
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setShowRelease(null)} className="flex-1 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-muted">
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={releasing}
+                  disabled={releasing || !selectedBank}
                   className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
                 >
-                  {releasing ? "Transferring..." : "Release Funds"}
+                  {releasing ? "Transferring..." : `Release to ${isMoMo ? "MoMo" : "Bank"}`}
                 </button>
               </div>
             </form>

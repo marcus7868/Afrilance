@@ -343,6 +343,16 @@ export interface PaymentListResponse {
   total: number;
 }
 
+export interface PaystackBank {
+  name: string;
+  code: string;
+  type: string;
+}
+
+export interface PaystackBankListResponse {
+  banks: PaystackBank[];
+}
+
 export interface AdminUser {
   id: number;
   userId: string;
