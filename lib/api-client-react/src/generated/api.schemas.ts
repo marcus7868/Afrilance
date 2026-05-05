@@ -343,6 +343,10 @@ export interface PaymentListResponse {
   total: number;
 }
 
+export interface ResolveAccountResponse {
+  accountName: string;
+}
+
 export interface PaystackBank {
   name: string;
   code: string;
@@ -501,6 +505,11 @@ export type GetConversationMessagesParams = {
 
 export type ListNotificationsParams = {
   unreadOnly?: boolean;
+};
+
+export type ResolvePaystackAccountParams = {
+  accountNumber: string;
+  bankCode: string;
 };
 
 export type AdminListUsersParams = {

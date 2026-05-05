@@ -51,6 +51,8 @@ export * from "./releasePaymentBody";
 export * from "./requestUploadUrlBody";
 export * from "./requestUploadUrlResponse";
 export * from "./requestUploadUrlResponseMetadata";
+export * from "./resolveAccountResponse";
+export * from "./resolvePaystackAccountParams";
 export * from "./review";
 export * from "./reviewListResponse";
 export * from "./savedJob";

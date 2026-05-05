@@ -47,6 +47,54 @@ function usePaystackScript() {
   return ready;
 }
 
+type VerifyState = "idle" | "loading" | "verified" | "error";
+
+function useAccountVerification(accountNumber: string, bankCode: string) {
+  const [state, setState] = useState<VerifyState>("idle");
+  const [resolvedName, setResolvedName] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setResolvedName("");
+    setErrorMsg("");
+
+    const minLen = bankCode === "MTN" || bankCode === "ATL" || bankCode === "VOD" ? 10 : 10;
+    if (!accountNumber || !bankCode || accountNumber.length < minLen) {
+      setState("idle");
+      return;
+    }
+
+    setState("loading");
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    timerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/payments/resolve-account?accountNumber=${encodeURIComponent(accountNumber)}&bankCode=${encodeURIComponent(bankCode)}`,
+        );
+        const json = await res.json();
+        if (res.ok && json.accountName) {
+          setResolvedName(json.accountName as string);
+          setState("verified");
+        } else {
+          setErrorMsg(json.error ?? "Account not found");
+          setState("error");
+        }
+      } catch {
+        setErrorMsg("Could not reach verification service");
+        setState("error");
+      }
+    }, 800);
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [accountNumber, bankCode]);
+
+  return { state, resolvedName, errorMsg };
+}
+
 interface Bank { name: string; code: string; type: string }
 
 function BankPicker({
@@ -87,7 +135,7 @@ function BankPicker({
         {selected ? (
           <span className="flex items-center gap-2">
             <span className="font-medium text-foreground">{selected.name}</span>
-            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${selected.type === "mobile_money" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"}`}>
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${selected.type === "mobile_money" ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"}`}>
               {selected.type === "mobile_money" ? "Mobile Money" : "Bank"}
             </span>
           </span>
@@ -116,7 +164,6 @@ function BankPicker({
               />
             </div>
           </div>
-
           <div className="max-h-56 overflow-y-auto">
             {momo.length > 0 && (
               <>
@@ -124,9 +171,7 @@ function BankPicker({
                   Mobile Money
                 </div>
                 {momo.map((b) => (
-                  <button
-                    key={b.code}
-                    type="button"
+                  <button key={b.code} type="button"
                     onClick={() => { onSelect(b); setOpen(false); setSearch(""); }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center gap-2"
                   >
@@ -142,9 +187,7 @@ function BankPicker({
                   Banks
                 </div>
                 {ghipss.map((b) => (
-                  <button
-                    key={b.code}
-                    type="button"
+                  <button key={b.code} type="button"
                     onClick={() => { onSelect(b); setOpen(false); setSearch(""); }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-muted flex items-center justify-between"
                   >
@@ -160,6 +203,39 @@ function BankPicker({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function VerifyBadge({ state, name, error }: { state: VerifyState; name: string; error: string }) {
+  if (state === "idle") return null;
+  if (state === "loading") {
+    return (
+      <div className="flex items-center gap-1.5 mt-1.5">
+        <svg className="w-3.5 h-3.5 text-muted-foreground animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        <span className="text-xs text-muted-foreground">Verifying account…</span>
+      </div>
+    );
+  }
+  if (state === "verified") {
+    return (
+      <div className="flex items-center gap-1.5 mt-1.5">
+        <svg className="w-3.5 h-3.5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+        </svg>
+        <span className="text-xs text-green-700 dark:text-green-400 font-medium">{name}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1.5 mt-1.5">
+      <svg className="w-3.5 h-3.5 text-destructive shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+      </svg>
+      <span className="text-xs text-destructive">{error || "Account not found — check the details"}</span>
     </div>
   );
 }
@@ -190,6 +266,17 @@ export default function PaymentsPage() {
 
   const banks = banksData?.banks ?? [];
   const isMoMo = selectedBank?.type === "mobile_money";
+
+  const { state: acctState, resolvedName, errorMsg: acctError } = useAccountVerification(
+    releaseForm.accountNumber,
+    selectedBank?.code ?? "",
+  );
+
+  useEffect(() => {
+    if (acctState === "verified" && resolvedName) {
+      setReleaseForm((f) => ({ ...f, accountName: resolvedName }));
+    }
+  }, [acctState, resolvedName]);
 
   const openPaystackCheckout = useCallback(
     (authorizationUrl: string, reference: string, _paymentId: number) => {
@@ -240,14 +327,7 @@ export default function PaymentsPage() {
     }
     setCreateError("");
     create(
-      {
-        data: {
-          jobId: parseInt(form.jobId),
-          freelancerId: parseInt(form.freelancerId),
-          amount: parseFloat(form.amount),
-          clientEmail,
-        },
-      },
+      { data: { jobId: parseInt(form.jobId), freelancerId: parseInt(form.freelancerId), amount: parseFloat(form.amount), clientEmail } },
       {
         onSuccess: (resp) => {
           setForm({ jobId: "", freelancerId: "", amount: "" });
@@ -264,16 +344,8 @@ export default function PaymentsPage() {
     e.preventDefault();
     if (!showRelease || !selectedBank) return;
     setReleaseError("");
-
     release(
-      {
-        id: showRelease,
-        data: {
-          accountNumber: releaseForm.accountNumber,
-          bankCode: selectedBank.code,
-          accountName: releaseForm.accountName,
-        },
-      },
+      { id: showRelease, data: { accountNumber: releaseForm.accountNumber, bankCode: selectedBank.code, accountName: releaseForm.accountName } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListPaymentsQueryKey() });
@@ -292,6 +364,8 @@ export default function PaymentsPage() {
   const totalPending = data?.payments.filter((p) => p.status === "pending").reduce((s, p) => s + p.amount, 0) ?? 0;
   const totalEscrowed = data?.payments.filter((p) => p.status === "escrowed").reduce((s, p) => s + p.amount, 0) ?? 0;
   const totalReleased = data?.payments.filter((p) => p.status === "released").reduce((s, p) => s + p.amount, 0) ?? 0;
+
+  const canRelease = !!selectedBank && !!releaseForm.accountName && (acctState === "verified" || acctState === "idle");
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -449,8 +523,7 @@ export default function PaymentsPage() {
               )}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">Job ID *</label>
-                <input
-                  type="number" required value={form.jobId}
+                <input type="number" required value={form.jobId}
                   onChange={(e) => setForm((f) => ({ ...f, jobId: e.target.value }))}
                   placeholder="Enter job ID"
                   className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -458,8 +531,7 @@ export default function PaymentsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">Freelancer Profile ID *</label>
-                <input
-                  type="number" required value={form.freelancerId}
+                <input type="number" required value={form.freelancerId}
                   onChange={(e) => setForm((f) => ({ ...f, freelancerId: e.target.value }))}
                   placeholder="Enter freelancer profile ID"
                   className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -469,8 +541,7 @@ export default function PaymentsPage() {
                 <label className="block text-sm font-medium text-foreground mb-1.5">Amount (GHS) *</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">₵</span>
-                  <input
-                    type="number" required min="1" step="0.01" value={form.amount}
+                  <input type="number" required min="1" step="0.01" value={form.amount}
                     onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                     placeholder="500"
                     className="w-full pl-7 pr-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -478,11 +549,8 @@ export default function PaymentsPage() {
                 </div>
               </div>
               <div className="flex gap-3 pt-1">
-                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-muted">
-                  Cancel
-                </button>
-                <button
-                  type="submit" disabled={creating || !paystackReady}
+                <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-muted">Cancel</button>
+                <button type="submit" disabled={creating || !paystackReady}
                   className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-50"
                 >
                   {creating ? "Initializing..." : "Pay with Paystack"}
@@ -506,7 +574,7 @@ export default function PaymentsPage() {
               </button>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Enter the freelancer's payout details. Funds will be sent instantly via Paystack.
+              Enter the freelancer's payout details. The account name will be verified automatically.
             </p>
 
             <form onSubmit={handleRelease} className="space-y-4">
@@ -522,12 +590,10 @@ export default function PaymentsPage() {
                 {banksLoading ? (
                   <div className="h-10 bg-muted rounded-lg animate-pulse" />
                 ) : (
-                  <BankPicker
-                    banks={banks}
-                    selected={selectedBank}
+                  <BankPicker banks={banks} selected={selectedBank}
                     onSelect={(b) => {
                       setSelectedBank(b);
-                      setReleaseForm((f) => ({ ...f, accountNumber: "" }));
+                      setReleaseForm((f) => ({ ...f, accountNumber: "", accountName: "" }));
                     }}
                   />
                 )}
@@ -539,29 +605,61 @@ export default function PaymentsPage() {
                 )}
               </div>
 
-              {/* Account number / phone number */}
+              {/* Account number / phone */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">
                   {isMoMo ? "Phone Number *" : "Account Number *"}
                 </label>
-                <input
-                  type="text" required value={releaseForm.accountNumber}
-                  onChange={(e) => setReleaseForm((f) => ({ ...f, accountNumber: e.target.value }))}
-                  placeholder={isMoMo ? "e.g. 0241234567" : "e.g. 1234567890"}
-                  className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
+                <div className="relative">
+                  <input
+                    type="text" required value={releaseForm.accountNumber}
+                    onChange={(e) => {
+                      setReleaseForm((f) => ({ ...f, accountNumber: e.target.value, accountName: "" }));
+                    }}
+                    placeholder={isMoMo ? "e.g. 0241234567" : "e.g. 1234567890"}
+                    className={`w-full px-3 py-2.5 bg-background border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 pr-8 ${
+                      acctState === "verified"
+                        ? "border-green-500"
+                        : acctState === "error"
+                          ? "border-destructive"
+                          : "border-border"
+                    }`}
+                  />
+                  {acctState === "loading" && (
+                    <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  )}
+                  {acctState === "verified" && (
+                    <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  {acctState === "error" && (
+                    <svg className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
+                </div>
+                <VerifyBadge state={acctState} name={resolvedName} error={acctError} />
               </div>
 
-              {/* Account name */}
+              {/* Account name — auto-filled, editable as fallback */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">
                   {isMoMo ? "Registered Name *" : "Account Name *"}
+                  {acctState === "verified" && (
+                    <span className="ml-2 text-xs font-normal text-green-600">auto-filled</span>
+                  )}
                 </label>
                 <input
                   type="text" required value={releaseForm.accountName}
                   onChange={(e) => setReleaseForm((f) => ({ ...f, accountName: e.target.value }))}
                   placeholder={isMoMo ? "Full name on the MoMo account" : "Full name on the bank account"}
-                  className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className={`w-full px-3 py-2.5 bg-background border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                    acctState === "verified" ? "border-green-500 bg-green-50 dark:bg-green-950/20" : "border-border"
+                  }`}
                 />
               </div>
 
@@ -576,7 +674,7 @@ export default function PaymentsPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={releasing || !selectedBank}
+                  disabled={releasing || !canRelease || acctState === "loading" || acctState === "error"}
                   className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
                 >
                   {releasing ? "Transferring..." : `Release to ${isMoMo ? "MoMo" : "Bank"}`}

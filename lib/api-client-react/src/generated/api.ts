@@ -55,6 +55,8 @@ import type {
   ReleasePaymentBody,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
+  ResolveAccountResponse,
+  ResolvePaystackAccountParams,
   Review,
   ReviewListResponse,
   SaveJobBody,
@@ -2772,6 +2774,112 @@ export function useListPaystackBanks<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPaystackBanksQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Resolve a bank account number to the account holder name
+ */
+export const getResolvePaystackAccountUrl = (
+  params: ResolvePaystackAccountParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/payments/resolve-account?${stringifiedParams}`
+    : `/api/payments/resolve-account`;
+};
+
+export const resolvePaystackAccount = async (
+  params: ResolvePaystackAccountParams,
+  options?: RequestInit,
+): Promise<ResolveAccountResponse> => {
+  return customFetch<ResolveAccountResponse>(
+    getResolvePaystackAccountUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getResolvePaystackAccountQueryKey = (
+  params?: ResolvePaystackAccountParams,
+) => {
+  return [
+    `/api/payments/resolve-account`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getResolvePaystackAccountQueryOptions = <
+  TData = Awaited<ReturnType<typeof resolvePaystackAccount>>,
+  TError = ErrorType<void>,
+>(
+  params: ResolvePaystackAccountParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof resolvePaystackAccount>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getResolvePaystackAccountQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof resolvePaystackAccount>>
+  > = ({ signal }) =>
+    resolvePaystackAccount(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof resolvePaystackAccount>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ResolvePaystackAccountQueryResult = NonNullable<
+  Awaited<ReturnType<typeof resolvePaystackAccount>>
+>;
+export type ResolvePaystackAccountQueryError = ErrorType<void>;
+
+/**
+ * @summary Resolve a bank account number to the account holder name
+ */
+
+export function useResolvePaystackAccount<
+  TData = Awaited<ReturnType<typeof resolvePaystackAccount>>,
+  TError = ErrorType<void>,
+>(
+  params: ResolvePaystackAccountParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof resolvePaystackAccount>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getResolvePaystackAccountQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

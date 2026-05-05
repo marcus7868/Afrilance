@@ -661,6 +661,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/PaystackBankListResponse"
 
+  /payments/resolve-account:
+    get:
+      operationId: resolvePaystackAccount
+      tags: [payments]
+      summary: Resolve a bank account number to the account holder name
+      parameters:
+        - in: query
+          name: accountNumber
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: bankCode
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Resolved account name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolveAccountResponse"
+        "422":
+          description: Account not found or invalid details
+
   # Saved Jobs
   /saved-jobs:
     get:
@@ -1600,6 +1626,14 @@ components:
       required:
         - payments
         - total
+
+    ResolveAccountResponse:
+      type: object
+      properties:
+        accountName:
+          type: string
+      required:
+        - accountName
 
     PaystackBank:
       type: object

@@ -789,6 +789,18 @@ export const ListPaystackBanksResponse = zod.object({
 });
 
 /**
+ * @summary Resolve a bank account number to the account holder name
+ */
+export const ResolvePaystackAccountQueryParams = zod.object({
+  accountNumber: zod.coerce.string(),
+  bankCode: zod.coerce.string(),
+});
+
+export const ResolvePaystackAccountResponse = zod.object({
+  accountName: zod.string(),
+});
+
+/**
  * @summary List saved jobs for current user
  */
 export const ListSavedJobsResponse = zod.object({
