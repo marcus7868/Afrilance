@@ -7,9 +7,11 @@ import {
   useAdminFlagJob,
   useAdminVerifyUser,
   useAdminChangeUserRole,
+  useGetAdminAuditLogs,
   getGetAdminStatsQueryKey,
   getAdminListUsersQueryKey,
   getAdminListJobsQueryKey,
+  getGetAdminAuditLogsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,7 +19,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { UserAvatar } from "@/components/UserAvatar";
 import { formatRelative, formatCurrency } from "@/lib/format";
 
-type Tab = "overview" | "users" | "jobs";
+type Tab = "overview" | "users" | "jobs" | "audit";
 
 function StatCard({ label, value, accent }: { label: string; value: number | string; accent?: boolean }) {
   return (
@@ -28,6 +30,18 @@ function StatCard({ label, value, accent }: { label: string; value: number | str
   );
 }
 
+const ACTION_LABELS: Record<string, { label: string; color: string }> = {
+  block_user:          { label: "Blocked",         color: "bg-red-100 text-red-700" },
+  unblock_user:        { label: "Unblocked",        color: "bg-emerald-100 text-emerald-700" },
+  verify_user:         { label: "Verified",         color: "bg-blue-100 text-blue-700" },
+  reject_verification: { label: "ID Rejected",      color: "bg-orange-100 text-orange-700" },
+  top_rate_user:       { label: "Top Rated",        color: "bg-amber-100 text-amber-700" },
+  remove_top_rated:    { label: "Top Rate Removed", color: "bg-muted text-muted-foreground" },
+  flag_job:            { label: "Flagged",          color: "bg-red-100 text-red-700" },
+  unflag_job:          { label: "Unflagged",        color: "bg-emerald-100 text-emerald-700" },
+  change_role:         { label: "Role Changed",     color: "bg-violet-100 text-violet-700" },
+};
+
 export default function AdminPage() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("overview");
@@ -35,6 +49,8 @@ export default function AdminPage() {
   const [userRole, setUserRole] = useState("");
   const [jobStatus, setJobStatus] = useState("");
   const [flaggedOnly, setFlaggedOnly] = useState(false);
+  const [auditAction, setAuditAction] = useState("");
+  const [auditEntity, setAuditEntity] = useState("");
 
   const { data: stats, isLoading: statsLoading } = useGetAdminStats({
     query: { queryKey: getGetAdminStatsQueryKey() },
@@ -58,6 +74,15 @@ export default function AdminPage() {
     query: { enabled: tab === "jobs", queryKey: getAdminListJobsQueryKey(jobParams) },
   });
 
+  const auditParams = {
+    ...(auditAction ? { action: auditAction } : {}),
+    ...(auditEntity ? { entityType: auditEntity } : {}),
+    limit: 50,
+  };
+  const { data: auditData, isLoading: auditLoading } = useGetAdminAuditLogs(auditParams, {
+    query: { enabled: tab === "audit", queryKey: getGetAdminAuditLogsQueryKey(auditParams) },
+  });
+
   const { mutate: blockUser } = useAdminBlockUser();
   const { mutate: flagJob } = useAdminFlagJob();
   const { mutate: verifyUser } = useAdminVerifyUser();
@@ -69,6 +94,7 @@ export default function AdminPage() {
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) });
+          queryClient.invalidateQueries({ queryKey: getGetAdminAuditLogsQueryKey(auditParams) });
         },
       },
     );
@@ -77,28 +103,48 @@ export default function AdminPage() {
   const handleVerify = (id: number, isVerified: boolean) => {
     verifyUser(
       { id, data: { isVerified: !isVerified, verificationStatus: !isVerified ? "approved" : "none" } as any },
-      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) }) },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) });
+          queryClient.invalidateQueries({ queryKey: getGetAdminAuditLogsQueryKey(auditParams) });
+        },
+      },
     );
   };
 
   const handleTopRated = (id: number, isTopRated: boolean) => {
     verifyUser(
       { id, data: { isTopRated: !isTopRated } },
-      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) }) },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) });
+          queryClient.invalidateQueries({ queryKey: getGetAdminAuditLogsQueryKey(auditParams) });
+        },
+      },
     );
   };
 
   const handleVerificationStatus = (id: number, status: "approved" | "rejected") => {
     verifyUser(
       { id, data: { verificationStatus: status, ...(status === "approved" ? { isVerified: true } : {}) } as any },
-      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) }) },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) });
+          queryClient.invalidateQueries({ queryKey: getGetAdminAuditLogsQueryKey(auditParams) });
+        },
+      },
     );
   };
 
   const handleRoleChange = (id: number, role: "freelancer" | "client" | "admin") => {
     changeRole(
       { id, data: { role } },
-      { onSuccess: () => queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) }) },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getAdminListUsersQueryKey(userParams) });
+          queryClient.invalidateQueries({ queryKey: getGetAdminAuditLogsQueryKey(auditParams) });
+        },
+      },
     );
   };
 
@@ -109,10 +155,18 @@ export default function AdminPage() {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getAdminListJobsQueryKey(jobParams) });
           queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetAdminAuditLogsQueryKey(auditParams) });
         },
       },
     );
   };
+
+  const tabs: { key: Tab; label: string }[] = [
+    { key: "overview", label: "Overview" },
+    { key: "users", label: "Users" },
+    { key: "jobs", label: "Jobs" },
+    { key: "audit", label: "Audit Log" },
+  ];
 
   return (
     <div className="min-h-screen bg-primary/5">
@@ -131,15 +185,15 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 bg-card border border-border rounded-xl p-1 mb-6 w-fit">
-          {(["overview", "users", "jobs"] as Tab[]).map((t) => (
+          {tabs.map((t) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
-                tab === t ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                tab === t.key ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t}
+              {t.label}
             </button>
           ))}
         </div>
@@ -190,6 +244,9 @@ export default function AdminPage() {
                       </button>
                       <button onClick={() => setTab("jobs")} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-accent transition-colors text-sm font-medium text-foreground">
                         Moderate Jobs ({stats.flaggedJobs} flagged)
+                      </button>
+                      <button onClick={() => setTab("audit")} className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-accent transition-colors text-sm font-medium text-foreground">
+                        View Audit Log
                       </button>
                     </div>
                   </div>
@@ -252,7 +309,21 @@ export default function AdminPage() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <UserAvatar name={u.name} size="sm" />
-                              <span className="font-medium text-foreground">{u.name}</span>
+                              <div>
+                                <div className="font-medium text-foreground flex items-center gap-1">
+                                  {u.name}
+                                  {(u as any).isVerified && (
+                                    <svg className="w-3.5 h-3.5 text-blue-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                  )}
+                                  {(u as any).isTopRated && (
+                                    <svg className="w-3.5 h-3.5 text-amber-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </td>
                           <td className="px-4 py-3">
@@ -288,12 +359,6 @@ export default function AdminPage() {
                                 <span className="text-xs font-medium text-destructive">Blocked</span>
                               ) : (
                                 <span className="text-xs font-medium text-emerald-600">Active</span>
-                              )}
-                              {(u as any).isVerified && (
-                                <span className="text-xs font-medium text-blue-600">✓ Verified</span>
-                              )}
-                              {(u as any).isTopRated && (
-                                <span className="text-xs font-medium text-amber-600">★ Top Rated</span>
                               )}
                             </div>
                           </td>
@@ -460,6 +525,100 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Audit Log Tab */}
+        {tab === "audit" && (
+          <div className="space-y-4">
+            <div className="flex gap-3 flex-wrap items-center">
+              <select
+                value={auditAction}
+                onChange={(e) => setAuditAction(e.target.value)}
+                className="px-3 py-2 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="">All actions</option>
+                <option value="block_user">Block User</option>
+                <option value="unblock_user">Unblock User</option>
+                <option value="verify_user">Verify User</option>
+                <option value="reject_verification">Reject Verification</option>
+                <option value="top_rate_user">Top Rate User</option>
+                <option value="remove_top_rated">Remove Top Rated</option>
+                <option value="flag_job">Flag Job</option>
+                <option value="unflag_job">Unflag Job</option>
+                <option value="change_role">Change Role</option>
+              </select>
+              <select
+                value={auditEntity}
+                onChange={(e) => setAuditEntity(e.target.value)}
+                className="px-3 py-2 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="">All entities</option>
+                <option value="user">Users</option>
+                <option value="job">Jobs</option>
+              </select>
+              {(auditAction || auditEntity) && (
+                <button
+                  onClick={() => { setAuditAction(""); setAuditEntity(""); }}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
+
+            {auditLoading ? (
+              <div className="space-y-2">
+                {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-14 rounded-xl" />)}
+              </div>
+            ) : !auditData?.logs.length ? (
+              <div className="text-center py-16 bg-card border border-border rounded-xl">
+                <svg className="w-10 h-10 text-muted-foreground mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <p className="text-muted-foreground font-medium">No audit entries yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Admin actions will appear here as they happen.</p>
+              </div>
+            ) : (
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase">
+                    {auditData.total} {auditData.total === 1 ? "entry" : "entries"}
+                  </span>
+                </div>
+                <div className="divide-y divide-border">
+                  {auditData.logs.map((log) => {
+                    const meta = ACTION_LABELS[log.action] ?? { label: log.action, color: "bg-muted text-muted-foreground" };
+                    return (
+                      <div key={log.id} className="px-4 py-3 flex items-start gap-3 hover:bg-muted/20">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide ${meta.color}`}>
+                              {meta.label}
+                            </span>
+                            <span className="text-sm text-foreground font-medium truncate">{log.details ?? `${log.action} on ${log.entityType} #${log.entityId}`}</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-muted-foreground">by {log.adminName}</span>
+                            <span className="text-muted-foreground">·</span>
+                            <span className="text-xs text-muted-foreground capitalize">{log.entityType}</span>
+                            {log.entityName && (
+                              <>
+                                <span className="text-muted-foreground">·</span>
+                                <span className="text-xs text-muted-foreground font-medium">{log.entityName}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">
+                          {formatRelative(log.createdAt)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

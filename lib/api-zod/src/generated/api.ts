@@ -1051,6 +1051,33 @@ export const GetAdminStatsResponse = zod.object({
 });
 
 /**
+ * @summary Admin - fetch audit log entries
+ */
+export const GetAdminAuditLogsQueryParams = zod.object({
+  action: zod.coerce.string().optional(),
+  entityType: zod.coerce.string().optional(),
+  limit: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
+});
+
+export const GetAdminAuditLogsResponse = zod.object({
+  logs: zod.array(
+    zod.object({
+      id: zod.number(),
+      adminId: zod.number(),
+      adminName: zod.string(),
+      action: zod.string(),
+      entityType: zod.string(),
+      entityId: zod.number(),
+      entityName: zod.string().nullish(),
+      details: zod.string().nullish(),
+      createdAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+});
+
+/**
  * @summary Request a presigned URL for file upload
  */
 export const RequestUploadUrlBody = zod.object({

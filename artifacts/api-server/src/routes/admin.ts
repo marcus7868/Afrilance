@@ -7,6 +7,8 @@ import {
   jobsTable,
   proposalsTable,
   paymentsTable,
+  notificationsTable,
+  auditLogsTable,
 } from "@workspace/db";
 import {
   AdminListUsersQueryParams,
@@ -34,6 +36,18 @@ async function requireAdmin(userId: string) {
     .where(eq(profilesTable.userId, userId));
   if (!profile || profile.role !== "admin") return null;
   return profile;
+}
+
+async function insertAuditLog(params: {
+  adminId: number;
+  adminName: string;
+  action: string;
+  entityType: string;
+  entityId: number;
+  entityName?: string | null;
+  details?: string;
+}) {
+  await db.insert(auditLogsTable).values(params).catch(() => {});
 }
 
 // GET /admin/users
@@ -116,6 +130,17 @@ router.patch("/admin/users/:id/block", async (req, res): Promise<void> => {
     return;
   }
 
+  const action = parsed.data.isBlocked ? "block_user" : "unblock_user";
+  await insertAuditLog({
+    adminId: admin.id,
+    adminName: admin.name,
+    action,
+    entityType: "user",
+    entityId: updated.id,
+    entityName: updated.name,
+    details: `${parsed.data.isBlocked ? "Blocked" : "Unblocked"} user "${updated.name}" (${updated.role})`,
+  });
+
   res.json(updated);
 });
 
@@ -145,6 +170,69 @@ router.patch("/admin/users/:id/verify", async (req, res): Promise<void> => {
     .returning();
 
   if (!updated) { res.status(404).json({ error: "User not found" }); return; }
+
+  // Determine action type for audit + notification
+  if (parsed.data.verificationStatus === "approved" || parsed.data.isVerified === true) {
+    await insertAuditLog({
+      adminId: admin.id,
+      adminName: admin.name,
+      action: "verify_user",
+      entityType: "user",
+      entityId: updated.id,
+      entityName: updated.name,
+      details: `Approved identity verification for "${updated.name}"`,
+    });
+    // Notify the freelancer
+    await db.insert(notificationsTable).values({
+      userId: updated.id,
+      type: "id_verified",
+      title: "Identity verified!",
+      body: "Your identity has been verified by our team. A verified badge will now appear on your profile — this helps you stand out to clients.",
+      relatedId: updated.id,
+      relatedType: "profile",
+    });
+  } else if (parsed.data.verificationStatus === "rejected" || parsed.data.isVerified === false) {
+    await insertAuditLog({
+      adminId: admin.id,
+      adminName: admin.name,
+      action: "reject_verification",
+      entityType: "user",
+      entityId: updated.id,
+      entityName: updated.name,
+      details: `Rejected identity verification for "${updated.name}"`,
+    });
+    // Notify the freelancer
+    await db.insert(notificationsTable).values({
+      userId: updated.id,
+      type: "id_rejected",
+      title: "Identity verification not approved",
+      body: "Your identity document could not be verified. Please upload a clearer photo of your Ghana Card, Voter's ID, or ECOWAS card in your profile settings.",
+      relatedId: updated.id,
+      relatedType: "profile",
+    });
+  } else if (parsed.data.isTopRated !== undefined) {
+    const action = parsed.data.isTopRated ? "top_rate_user" : "remove_top_rated";
+    await insertAuditLog({
+      adminId: admin.id,
+      adminName: admin.name,
+      action,
+      entityType: "user",
+      entityId: updated.id,
+      entityName: updated.name,
+      details: `${parsed.data.isTopRated ? "Granted" : "Removed"} Top Rated status for "${updated.name}"`,
+    });
+    if (parsed.data.isTopRated) {
+      await db.insert(notificationsTable).values({
+        userId: updated.id,
+        type: "top_rated",
+        title: "You're now Top Rated!",
+        body: "Congratulations! Our team has granted you Top Rated status. This badge boosts your visibility and signals your excellence to clients.",
+        relatedId: updated.id,
+        relatedType: "profile",
+      });
+    }
+  }
+
   res.json(updated);
 });
 
@@ -174,6 +262,17 @@ router.patch("/admin/users/:id/role", async (req, res): Promise<void> => {
     .returning();
 
   if (!updated) { res.status(404).json({ error: "User not found" }); return; }
+
+  await insertAuditLog({
+    adminId: admin.id,
+    adminName: admin.name,
+    action: "change_role",
+    entityType: "user",
+    entityId: updated.id,
+    entityName: updated.name,
+    details: `Changed role of "${updated.name}" to "${parsed.data.role}"`,
+  });
+
   res.json(updated);
 });
 
@@ -276,6 +375,29 @@ router.patch("/admin/jobs/:id/flag", async (req, res): Promise<void> => {
     return;
   }
 
+  const action = parsed.data.isFlagged ? "flag_job" : "unflag_job";
+  await insertAuditLog({
+    adminId: admin.id,
+    adminName: admin.name,
+    action,
+    entityType: "job",
+    entityId: updated.id,
+    entityName: updated.title,
+    details: `${parsed.data.isFlagged ? "Flagged" : "Unflagged"} job "${updated.title}"`,
+  });
+
+  // Notify the client if their job was flagged
+  if (parsed.data.isFlagged) {
+    await db.insert(notificationsTable).values({
+      userId: updated.clientId,
+      type: "job_flagged",
+      title: "Your job posting was flagged",
+      body: `Your job "${updated.title}" has been flagged for review by our moderation team. Please ensure it complies with our community guidelines.`,
+      relatedId: updated.id,
+      relatedType: "job",
+    });
+  }
+
   res.json({ ...updated, clientName: null, clientAvatarUrl: null });
 });
 
@@ -314,6 +436,44 @@ router.get("/admin/stats", async (req, res): Promise<void> => {
     flaggedJobs: Number(flaggedJobs.count),
     blockedUsers: Number(blockedUsers.count),
   });
+});
+
+// GET /admin/audit-logs
+router.get("/admin/audit-logs", async (req, res): Promise<void> => {
+  const auth = getAuth(req);
+  const userId = auth?.userId;
+  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const admin = await requireAdmin(userId);
+  if (!admin) { res.status(403).json({ error: "Admin access required" }); return; }
+
+  const parsed = z.object({
+    action: z.string().optional(),
+    entityType: z.string().optional(),
+    limit: z.coerce.number().default(50),
+    offset: z.coerce.number().default(0),
+  }).safeParse(req.query);
+
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+
+  const { action, entityType, limit, offset } = parsed.data;
+  const conditions = [];
+  if (action) conditions.push(eq(auditLogsTable.action, action));
+  if (entityType) conditions.push(eq(auditLogsTable.entityType, entityType));
+
+  const logs = await db
+    .select()
+    .from(auditLogsTable)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .limit(limit)
+    .offset(offset)
+    .orderBy(desc(auditLogsTable.createdAt));
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(auditLogsTable)
+    .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+  res.json({ logs, total: Number(count) });
 });
 
 export default router;

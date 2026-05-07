@@ -179,6 +179,13 @@ router.patch("/proposals/:id", async (req, res): Promise<void> => {
     return;
   }
 
+  // Fetch proposal + job for rich notification
+  const [existingRow] = await db
+    .select({ proposal: proposalsTable, job: jobsTable })
+    .from(proposalsTable)
+    .leftJoin(jobsTable, eq(proposalsTable.jobId, jobsTable.id))
+    .where(eq(proposalsTable.id, params.data.id));
+
   const [updated] = await db
     .update(proposalsTable)
     .set({ status: parsed.data.status, updatedAt: new Date() })
@@ -190,15 +197,52 @@ router.patch("/proposals/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  // Notify freelancer about status change
-  await db.insert(notificationsTable).values({
-    userId: updated.freelancerId,
-    type: "proposal_status",
-    title: "Proposal status updated",
-    body: `Your proposal status changed to: ${parsed.data.status}`,
-    relatedId: updated.id,
-    relatedType: "proposal",
-  });
+  const jobTitle = existingRow?.job?.title ?? "a job";
+  const isAccepted = parsed.data.status === "accepted";
+
+  // Rich, specific notifications per status
+  if (parsed.data.status === "accepted") {
+    await db.insert(notificationsTable).values({
+      userId: updated.freelancerId,
+      type: "proposal_accepted",
+      title: "Proposal accepted!",
+      body: `Congratulations! Your proposal for "${jobTitle}" has been accepted. Get in touch with the client to begin.`,
+      relatedId: updated.id,
+      relatedType: "proposal",
+    });
+  } else if (parsed.data.status === "rejected") {
+    await db.insert(notificationsTable).values({
+      userId: updated.freelancerId,
+      type: "proposal_rejected",
+      title: "Proposal not selected",
+      body: `Your proposal for "${jobTitle}" was not selected this time. Keep applying — there are more opportunities!`,
+      relatedId: updated.id,
+      relatedType: "proposal",
+    });
+  } else {
+    await db.insert(notificationsTable).values({
+      userId: updated.freelancerId,
+      type: "proposal_status",
+      title: "Proposal status updated",
+      body: `Your proposal for "${jobTitle}" status changed to: ${parsed.data.status}`,
+      relatedId: updated.id,
+      relatedType: "proposal",
+    });
+  }
+
+  // Also notify the client's other proposals on the same job are now closed (if accepted)
+  if (isAccepted && existingRow?.job) {
+    const clientId = existingRow.job.clientId;
+    // Notify client that they accepted a proposal
+    await db.insert(notificationsTable).values({
+      userId: clientId,
+      type: "proposal_accepted",
+      title: "You accepted a proposal",
+      body: `You've accepted a proposal for "${jobTitle}". Check your messages to coordinate next steps.`,
+      relatedId: updated.id,
+      relatedType: "proposal",
+    });
+  }
 
   res.json(enrichProposal(updated, null, null));
 });

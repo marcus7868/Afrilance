@@ -907,6 +907,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminStats"
 
+  /admin/audit-logs:
+    get:
+      operationId: getAdminAuditLogs
+      tags: [admin]
+      summary: Admin - fetch audit log entries
+      parameters:
+        - in: query
+          name: action
+          schema:
+            type: string
+        - in: query
+          name: entityType
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogListResponse"
+
   /storage/uploads/request-url:
     post:
       operationId: requestUploadUrl
@@ -1852,3 +1882,48 @@ components:
         - activeJobs
         - flaggedJobs
         - blockedUsers
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        adminId:
+          type: integer
+        adminName:
+          type: string
+        action:
+          type: string
+        entityType:
+          type: string
+        entityId:
+          type: integer
+        entityName:
+          type: string
+          nullable: true
+        details:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - adminId
+        - adminName
+        - action
+        - entityType
+        - entityId
+        - createdAt
+
+    AuditLogListResponse:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+        total:
+          type: integer
+      required:
+        - logs
+        - total

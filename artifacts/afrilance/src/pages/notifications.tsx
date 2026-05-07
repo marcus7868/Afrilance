@@ -9,6 +9,78 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+function NotifIcon({ type }: { type: string }) {
+  const base = "w-4 h-4";
+  if (type === "new_proposal") return (
+    <svg className={base} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  );
+  if (type === "proposal_accepted") return (
+    <svg className={base} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+  if (type === "proposal_rejected" || type === "proposal_status") return (
+    <svg className={base} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+  if (type === "payment_escrowed") return (
+    <svg className={base} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+  );
+  if (type === "payment_released") return (
+    <svg className={base} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+    </svg>
+  );
+  if (type === "new_message") return (
+    <svg className={base} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+    </svg>
+  );
+  if (type === "id_verified") return (
+    <svg className={base} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+    </svg>
+  );
+  if (type === "id_rejected") return (
+    <svg className={base} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+  if (type === "top_rated") return (
+    <svg className={base} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+    </svg>
+  );
+  if (type === "job_flagged") return (
+    <svg className={base} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+    </svg>
+  );
+  return (
+    <svg className={base} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+  );
+}
+
+function notifColors(type: string, isRead: boolean) {
+  if (isRead) return "bg-muted text-muted-foreground";
+  if (type === "proposal_accepted" || type === "id_verified" || type === "top_rated" || type === "payment_released")
+    return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
+  if (type === "proposal_rejected" || type === "id_rejected" || type === "job_flagged")
+    return "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400";
+  if (type === "payment_escrowed")
+    return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
+  if (type === "new_message")
+    return "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400";
+  return "bg-primary/10 text-primary";
+}
+
 export default function NotificationsPage() {
   const queryClient = useQueryClient();
 
@@ -36,19 +108,6 @@ export default function NotificationsPage() {
         queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey({}) });
       },
     });
-  };
-
-  const notifIcons: Record<string, React.ReactNode> = {
-    new_proposal: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    ),
-    proposal_status: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
   };
 
   return (
@@ -95,23 +154,19 @@ export default function NotificationsPage() {
             >
               <div className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
-                n.isRead ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary",
+                notifColors(n.type, n.isRead),
               )}>
-                {notifIcons[n.type] ?? (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                )}
+                <NotifIcon type={n.type} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-foreground">{n.title}</div>
-                <div className="text-sm text-muted-foreground mt-0.5">{n.body}</div>
-                <div className="text-xs text-muted-foreground mt-1">{formatRelative(n.createdAt)}</div>
+                <div className="text-sm font-semibold text-foreground">{n.title}</div>
+                <div className="text-sm text-muted-foreground mt-0.5 leading-relaxed">{n.body}</div>
+                <div className="text-xs text-muted-foreground mt-1.5">{formatRelative(n.createdAt)}</div>
               </div>
               {!n.isRead && (
                 <button
                   onClick={() => handleMarkRead(n.id)}
-                  className="text-xs text-primary hover:underline flex-shrink-0"
+                  className="text-xs text-primary hover:underline flex-shrink-0 mt-0.5"
                 >
                   Mark read
                 </button>

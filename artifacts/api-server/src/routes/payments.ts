@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq, or, desc } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
-import { db, paymentsTable, profilesTable, jobsTable } from "@workspace/db";
+import { db, paymentsTable, profilesTable, jobsTable, notificationsTable } from "@workspace/db";
 import { z } from "zod";
 import {
   initializeTransaction,
@@ -35,6 +35,10 @@ function enrichPayment(
     clientName: client?.name ?? null,
     releasedAt: p.releasedAt?.toISOString() ?? null,
   };
+}
+
+function formatGHS(amount: number) {
+  return `₵${amount.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // GET /payments
@@ -175,6 +179,17 @@ router.get("/payments/verify/:reference", async (req, res): Promise<void> => {
     const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, updated.jobId));
     const [freelancer] = await db.select().from(profilesTable).where(eq(profilesTable.id, updated.freelancerId));
     const [client] = await db.select().from(profilesTable).where(eq(profilesTable.id, updated.clientId));
+
+    // Notify freelancer that funds are now in escrow
+    await db.insert(notificationsTable).values({
+      userId: updated.freelancerId,
+      type: "payment_escrowed",
+      title: "Payment placed in escrow",
+      body: `${client?.name ?? "A client"} has placed ${formatGHS(updated.amount)} in escrow for "${job?.title ?? "your project"}". You can begin working now.`,
+      relatedId: updated.id,
+      relatedType: "payment",
+    });
+
     res.json(enrichPayment(updated, job, freelancer, client));
   } catch (err: any) {
     req.log.error({ err }, "Paystack verify failed");
@@ -259,6 +274,27 @@ router.patch("/payments/:id/release", async (req, res): Promise<void> => {
     const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, updated.jobId));
     const [freelancer] = await db.select().from(profilesTable).where(eq(profilesTable.id, updated.freelancerId));
     const [client] = await db.select().from(profilesTable).where(eq(profilesTable.id, updated.clientId));
+
+    // Notify freelancer that payment has been released
+    await db.insert(notificationsTable).values({
+      userId: updated.freelancerId,
+      type: "payment_released",
+      title: "Payment released to your account!",
+      body: `${formatGHS(updated.amount)} from "${job?.title ?? "your project"}" has been transferred to your bank account. Check your balance shortly.`,
+      relatedId: updated.id,
+      relatedType: "payment",
+    });
+
+    // Notify client that release was successful
+    await db.insert(notificationsTable).values({
+      userId: updated.clientId,
+      type: "payment_released",
+      title: "Payment successfully released",
+      body: `You've successfully released ${formatGHS(updated.amount)} to ${freelancer?.name ?? "the freelancer"} for "${job?.title ?? "your project"}".`,
+      relatedId: updated.id,
+      relatedType: "payment",
+    });
+
     res.json(enrichPayment(updated, job, freelancer, client));
   } catch (err: any) {
     req.log.error({ err }, "Paystack transfer failed");

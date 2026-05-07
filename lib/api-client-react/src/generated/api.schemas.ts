@@ -454,6 +454,23 @@ export interface AdminStats {
   blockedUsers: number;
 }
 
+export interface AuditLog {
+  id: number;
+  adminId: number;
+  adminName: string;
+  action: string;
+  entityType: string;
+  entityId: number;
+  entityName?: string | null;
+  details?: string | null;
+  createdAt: string;
+}
+
+export interface AuditLogListResponse {
+  logs: AuditLog[];
+  total: number;
+}
+
 export type ListFreelancersParams = {
   skill?: string;
   location?: string;
@@ -522,6 +539,13 @@ export type AdminListUsersParams = {
 export type AdminListJobsParams = {
   status?: string;
   flagged?: boolean;
+  limit?: number;
+  offset?: number;
+};
+
+export type GetAdminAuditLogsParams = {
+  action?: string;
+  entityType?: string;
   limit?: number;
   offset?: number;
 };

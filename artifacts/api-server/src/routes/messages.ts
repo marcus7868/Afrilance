@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq, and, or, sql, desc } from "drizzle-orm";
 import { getAuth } from "@clerk/express";
-import { db, conversationsTable, messagesTable, profilesTable } from "@workspace/db";
+import { db, conversationsTable, messagesTable, profilesTable, notificationsTable } from "@workspace/db";
 import {
   GetConversationMessagesParams,
   GetConversationMessagesQueryParams,
@@ -156,6 +156,8 @@ router.post("/messages", async (req, res): Promise<void> => {
       ),
     );
 
+  const isNewConversation = !conversation;
+
   if (!conversation) {
     [conversation] = await db
       .insert(conversationsTable)
@@ -180,6 +182,32 @@ router.post("/messages", async (req, res): Promise<void> => {
     .update(conversationsTable)
     .set({ lastMessage: parsed.data.content, lastMessageAt: new Date() })
     .where(eq(conversationsTable.id, conversation.id));
+
+  // Notify recipient of new message
+  // Only notify if this is a new conversation OR there are no unread messages already
+  // to avoid spamming — one notification per conversation burst
+  const [{ unreadCount }] = await db
+    .select({ unreadCount: sql<number>`count(*)` })
+    .from(messagesTable)
+    .where(
+      and(
+        eq(messagesTable.conversationId, conversation.id),
+        eq(messagesTable.isRead, false),
+        sql`${messagesTable.senderId} = ${profile.id}`,
+        sql`${messagesTable.id} != ${message.id}`,
+      ),
+    );
+
+  if (isNewConversation || Number(unreadCount) === 0) {
+    await db.insert(notificationsTable).values({
+      userId: parsed.data.recipientId,
+      type: "new_message",
+      title: "New message",
+      body: `${profile.name} sent you a message: "${parsed.data.content.slice(0, 80)}${parsed.data.content.length > 80 ? "…" : ""}"`,
+      relatedId: conversation.id,
+      relatedType: "conversation",
+    });
+  }
 
   res.status(201).json(message);
 });
