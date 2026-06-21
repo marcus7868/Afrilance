@@ -12,6 +12,8 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss({ optimize: false }),
+    // Replit plugins removed for local development and Vercel deployment
+    /*
     ...(process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined
       ? [
           await import("@replit/vite-plugin-runtime-error-modal").then((m) => m.default()),
@@ -21,6 +23,7 @@ export default defineConfig({
           await import("@replit/vite-plugin-dev-banner").then((m) => m.devBanner()),
         ]
       : []),
+    */
   ],
   resolve: {
     alias: {

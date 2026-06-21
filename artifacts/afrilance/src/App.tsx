@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser, useAuth } from "@clerk/react"; // 👈 Added useAuth here
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Switch, Route, Redirect, useLocation, Router as WouterRouter } from "wouter";
@@ -9,6 +9,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/Layout";
 import { useGetMyProfile, getGetMyProfileQueryKey, setBaseUrl } from "@workspace/api-client-react";
+// 👇 IMPORT setAuthTokenGetter (Verify this relative path matches your custom-fetch location)
+import { setAuthTokenGetter } from "../../../lib/api-client-react/src/custom-fetch";
+// lib\api-client-react\src\custom-fetch.ts
+
 import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/landing";
 import OnboardingPage from "@/pages/onboarding";
@@ -112,6 +116,32 @@ function ClerkQueryClientCacheInvalidator() {
     });
     return unsub;
   }, [addListener, qc]);
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// 👇 NEW: Component to register your Token Bridge with customFetch
+// ---------------------------------------------------------------------------
+function ClerkTokenBridge() {
+  const { getToken, isSignedIn } = useAuth();
+
+  useEffect(() => {
+    if (isSignedIn) {
+      // Set the token generator to use Clerk's engine
+      setAuthTokenGetter(async () => {
+        try {
+          return await getToken();
+        } catch (err) {
+          console.error("Failed to retrieve authentication token from Clerk:", err);
+          return null;
+        }
+      });
+    } else {
+      // Drop the token getter cleanly if the session ends
+      setAuthTokenGetter(null);
+    }
+  }, [isSignedIn, getToken]);
 
   return null;
 }
@@ -270,6 +300,8 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
+        {/* 👇 INJECTED HERE: Resolves 401s by feeding customFetch your Clerk key */}
+        <ClerkTokenBridge /> 
         <TooltipProvider>
           <Router />
           <Toaster />

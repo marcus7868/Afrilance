@@ -24,7 +24,28 @@ function StatCard({ label, value, className }: { label: string; value: string | 
   );
 }
 
-function ProfileCompletenessWidget({ profile }: { profile: NonNullable<ReturnType<typeof useGetMyProfile>["data"]> }) {
+// function ProfileCompletenessWidget({ profile }: { profile: NonNullable<ReturnType<typeof useGetMyProfile>["data"]> }) {
+//   const fields = [
+//     { label: "Name", done: !!profile.name?.trim() },
+//     { label: "Bio", done: !!profile.bio?.trim() },
+//     { label: "Location", done: !!profile.location?.trim() },
+//     { label: "Category", done: !!profile.category },
+//     { label: "Skills", done: (profile.skills?.length ?? 0) >= 1 },
+//     { label: "Hourly rate", done: profile.hourlyRate != null },
+//     { label: "Portfolio item", done: (profile.portfolioItems?.length ?? 0) >= 1 },
+//   ];
+type Profile = {
+  name?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  category?: string | null;
+  skills?: string[] | null;
+  hourlyRate?: number | null;
+  portfolioItems?: unknown[] | null;
+};
+
+function ProfileCompletenessWidget({ profile }: { profile: Profile })
+{
   const fields = [
     { label: "Name", done: !!profile.name?.trim() },
     { label: "Bio", done: !!profile.bio?.trim() },
