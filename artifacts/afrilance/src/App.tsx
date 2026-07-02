@@ -29,6 +29,19 @@ import PaymentsPage from "@/pages/payments";
 import SettingsPage from "@/pages/settings";
 import AdminPage from "@/pages/admin";
 
+
+// Fallback directly to the environment variable if dynamic parsing fails
+// const clerkPubKey = publishableKeyFromHost(
+//   window.location.hostname,
+//   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+// ) || import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+// if (!clerkPubKey) {
+//   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY in environment variables.");
+// }
+
+
+
 // When deployed with a separate API server (e.g. Railway), point all API calls there.
 if (import.meta.env.VITE_API_BASE_URL) {
   setBaseUrl(import.meta.env.VITE_API_BASE_URL as string);
@@ -37,14 +50,27 @@ if (import.meta.env.VITE_API_BASE_URL) {
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
+
+// Look for the env key first. If it's missing, fall back to empty string so it doesn't crash the compiler.
+
+const rawKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || "";
+console.log("DEBUG: Your Clerk Env Key is:", import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+
+const clerkPubKey = rawKey.startsWith("pk_") 
+  ? rawKey 
+  : publishableKeyFromHost(window.location.hostname, rawKey);
 
 if (!clerkPubKey) {
-  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
+  console.warn("Clerk publishable key could not be resolved.");
 }
+// const clerkPubKey = publishableKeyFromHost(
+//   window.location.hostname,
+//   import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+// ) || import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+// if (!clerkPubKey) {
+//   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY in environment variables.");
+// }
 
 function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)

@@ -47,6 +47,8 @@ export default function FreelancersPage() {
     location: "",
     minRate: "",
     maxRate: "",
+    minFixedRate: "",    // ← ADD
+    maxFixedRate: "",
   });
   const [page, setPage] = useState(0);
 
@@ -60,6 +62,8 @@ export default function FreelancersPage() {
     ...(debouncedLocation ? { location: debouncedLocation } : {}),
     ...(filters.minRate ? { minRate: parseFloat(filters.minRate) } : {}),
     ...(filters.maxRate ? { maxRate: parseFloat(filters.maxRate) } : {}),
+    ...(filters.minFixedRate ? { minFixedRate: parseFloat(filters.minFixedRate) } : {}),   // ← ADD
+    ...(filters.maxFixedRate ? { maxFixedRate: parseFloat(filters.maxFixedRate) } : {}),
     limit: PAGE_SIZE,
     offset: page * PAGE_SIZE,
   };
@@ -156,8 +160,27 @@ export default function FreelancersPage() {
                 />
               </div>
             </div>
+                        <div>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Fixed Project Rate (GHS)</label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={filters.minFixedRate}
+                  onChange={(e) => { setFilters((f) => ({ ...f, minFixedRate: e.target.value })); setPage(0); }}
+                  placeholder="Min"
+                  className="w-1/2 px-2 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                <input
+                  type="number"
+                  value={filters.maxFixedRate}
+                  onChange={(e) => { setFilters((f) => ({ ...f, maxFixedRate: e.target.value })); setPage(0); }}
+                  placeholder="Max"
+                  className="w-1/2 px-2 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+            </div>
             <button
-              onClick={() => { setFilters({ search: "", skill: "", location: "", minRate: "", maxRate: "" }); setPage(0); }}
+              onClick={() => { setFilters({ search: "", skill: "", location: "", minRate: "", maxRate: "", minFixedRate: "", maxFixedRate: "" }); setPage(0); }}
               className="w-full py-2 text-sm text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors"
             >
               Clear Filters
@@ -233,10 +256,16 @@ export default function FreelancersPage() {
                       ) : (
                         <span className="text-xs text-muted-foreground">No reviews yet</span>
                       )}
-                      {f.hourlyRate && (
-                        <span className="text-sm font-semibold text-primary">₵{f.hourlyRate}/hr</span>
-                      )}
+                        <div className="flex flex-col items-end gap-0.5">
+                        {f.hourlyRate && (
+                          <span className="text-sm font-semibold text-primary">₵{f.hourlyRate}/hr</span>
+                        )}
+                        {(f as any).fixedRate && (
+                          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">₵{(f as any).fixedRate} fixed</span>
+                        )}
+                      </div>
                     </div>
+                    
                   </Link>
                 ))}
               </div>

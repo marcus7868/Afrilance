@@ -211,12 +211,30 @@ export default function FreelancerProfilePage() {
           </div>
         </div>
 
+
+
         {/* Sidebar */}
         <div className="space-y-4">
-          {profile.hourlyRate && (
-            <div className="bg-card border border-border rounded-xl p-5">
-              <div className="text-2xl font-bold text-primary">₵{profile.hourlyRate}<span className="text-sm font-normal text-muted-foreground">/hr</span></div>
-              <div className="text-sm text-muted-foreground mt-0.5">Hourly Rate</div>
+                    {(profile.hourlyRate || (profile as any).fixedRate) && (
+            <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pricing</h3>
+              {profile.hourlyRate && (
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm text-muted-foreground">Hourly</span>
+                  <div className="text-right">
+                    <span className="text-xl font-bold text-primary">₵{profile.hourlyRate}</span>
+                    <span className="text-sm text-muted-foreground">/hr</span>
+                  </div>
+                </div>
+              )}
+              {(profile as any).fixedRate && (
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm text-muted-foreground">Fixed project</span>
+                  <div className="text-right">
+                    <span className="text-xl font-bold text-emerald-700">₵{(profile as any).fixedRate}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -21,6 +21,7 @@ export const profilesTable = pgTable("profiles", {
   location: text("location"),
   skills: text("skills").array().notNull().default([]),
   hourlyRate: real("hourly_rate"),
+  fixedRate: real("fixed_rate"),
   category: text("category"),
   featured: boolean("featured").notNull().default(false),
   isBlocked: boolean("is_blocked").notNull().default(false),

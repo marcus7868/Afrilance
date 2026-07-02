@@ -10,6 +10,7 @@ import {
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import configRouter from "./routes/config";
+import publicRouter from "./routes/public";
 import paymentsWebhookRouter from "./routes/payments-webhook";
 import { logger } from "./lib/logger";
 
@@ -42,6 +43,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Public routes (no Clerk auth) — registered before clerkMiddleware
 app.use("/api", configRouter);
+app.use("/api", publicRouter);
 app.use(
   "/api/payments/webhook",
   express.raw({ type: "application/json" }),
