@@ -41,6 +41,8 @@ export default defineConfig({
     port,
     strictPort: true,
     host: "0.0.0.0",
+    https: false,
+    origin: `http://localhost:${port}`,
     allowedHosts: true,
     fs: { strict: true },
     proxy: process.env.REPL_ID

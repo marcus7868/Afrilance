@@ -30,6 +30,7 @@ import SettingsPage from "@/pages/settings";
 import AdminPage from "@/pages/admin";
 
 
+
 // Fallback directly to the environment variable if dynamic parsing fails
 // const clerkPubKey = publishableKeyFromHost(
 //   window.location.hostname,
@@ -48,11 +49,8 @@ if (import.meta.env.VITE_API_BASE_URL) {
 }
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
-
 
 // Look for the env key first. If it's missing, fall back to empty string so it doesn't crash the compiler.
-
 const rawKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || "";
 console.log("DEBUG: Your Clerk Env Key is:", import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
@@ -300,27 +298,30 @@ function Router() {
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
 
+  const localization = {
+  signIn: {
+    start: {
+      title: "Welcome back to AfriLance",
+      subtitle: "Sign in to access your account",
+    },
+  },
+  signUp: {
+    start: {
+      title: "Join AfriLance",
+      subtitle: "Connect with top African talent and opportunities",
+    },
+  },
+};
+
+
   return (
     <ClerkProvider
+      localization={localization}
       publishableKey={clerkPubKey}
-      proxyUrl={clerkProxyUrl}
+      clerkJSUrl="https://npm.clerk.dev/@clerk/clerk-js@6/dist/clerk.browser.js"
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
-      localization={{
-        signIn: {
-          start: {
-            title: "Welcome back to AfriLance",
-            subtitle: "Sign in to access your account",
-          },
-        },
-        signUp: {
-          start: {
-            title: "Join AfriLance",
-            subtitle: "Connect with top African talent and opportunities",
-          },
-        },
-      }}
       routerPush={(to) => setLocation(stripBase(to))}
       routerReplace={(to) => setLocation(stripBase(to), { replace: true })}
     >
