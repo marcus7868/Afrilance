@@ -8,9 +8,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/Layout";
-import { useGetMyProfile, getGetMyProfileQueryKey, setBaseUrl } from "@workspace/api-client-react";
-// 👇 IMPORT setAuthTokenGetter (Verify this relative path matches your custom-fetch location)
-import { setAuthTokenGetter } from "../../../lib/api-client-react/src/custom-fetch";
+import { useGetMyProfile, getGetMyProfileQueryKey, setBaseUrl, setAuthTokenGetter } from "@workspace/api-client-react";
 // lib\api-client-react\src\custom-fetch.ts
 
 import NotFound from "@/pages/not-found";
@@ -318,7 +316,6 @@ function ClerkProviderWithRoutes() {
     <ClerkProvider
       localization={localization}
       publishableKey={clerkPubKey}
-      clerkJSUrl="https://npm.clerk.dev/@clerk/clerk-js@6/dist/clerk.browser.js"
       appearance={clerkAppearance}
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}

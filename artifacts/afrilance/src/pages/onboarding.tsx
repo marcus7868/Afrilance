@@ -23,6 +23,7 @@ export default function OnboardingPage() {
     location: "",
     skills: [] as string[],
     hourlyRate: "",
+    fixedRate: "",
     category: "",
     newSkill: "",
   });
@@ -66,6 +67,7 @@ export default function OnboardingPage() {
           location: form.location.trim() || null,
           skills: form.skills,
           hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : null,
+          fixedRate: form.fixedRate ? parseFloat(form.fixedRate) : null,
           category: form.category || null,
         },
       },
@@ -230,19 +232,37 @@ export default function OnboardingPage() {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1.5">Hourly Rate (GHS)</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₵</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="1000"
-                      value={form.hourlyRate}
-                      onChange={(e) => setForm((f) => ({ ...f, hourlyRate: e.target.value }))}
-                      placeholder="50"
-                      className="w-full pl-7 pr-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                    />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Hourly Rate (GHS)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₵</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="1000"
+                        value={form.hourlyRate}
+                        onChange={(e) => setForm((f) => ({ ...f, hourlyRate: e.target.value }))}
+                        placeholder="50"
+                        className="w-full pl-7 pr-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-1.5">Fixed Rate (GHS)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₵</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10000"
+                        value={form.fixedRate}
+                        onChange={(e) => setForm((f) => ({ ...f, fixedRate: e.target.value }))}
+                        placeholder="1200"
+                        className="w-full pl-7 pr-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                      />
+                    </div>
                   </div>
                 </div>
               </>

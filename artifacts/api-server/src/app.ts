@@ -1,12 +1,10 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
-import { clerkMiddleware } from "@clerk/express";
-import { publishableKeyFromHost } from "@clerk/shared/keys";
+import { clerkMiddleware, requireAuth } from "@clerk/express";
 import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
-  getClerkProxyHost,
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import configRouter from "./routes/config";
@@ -53,13 +51,18 @@ app.use(
 app.use(express.json());
 
 app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
+  clerkMiddleware(() => ({
+    publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+    secretKey: process.env.CLERK_SECRET_KEY,
   })),
 );
+
+app.use((req, _res, next) => {
+  if (req.headers.authorization?.startsWith("Bearer ")) {
+    req.headers.authorization = req.headers.authorization;
+  }
+  next();
+});
 
 app.use("/api", router);
 

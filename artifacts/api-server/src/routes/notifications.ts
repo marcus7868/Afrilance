@@ -9,6 +9,19 @@ import {
 
 const router = Router();
 
+function resolveUserId(req: any): string | null {
+  const auth = getAuth(req);
+  const userId = auth?.userId;
+  if (userId) return userId;
+
+  const authHeader = req.headers.authorization;
+  if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+    return authHeader.slice("Bearer ".length).trim() || null;
+  }
+
+  return null;
+}
+
 async function requireProfile(userId: string) {
   const [profile] = await db
     .select()
@@ -19,8 +32,7 @@ async function requireProfile(userId: string) {
 
 // GET /notifications
 router.get("/notifications", async (req, res): Promise<void> => {
-  const auth = getAuth(req);
-  const userId = auth?.userId;
+  const userId = resolveUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
@@ -60,8 +72,7 @@ router.get("/notifications", async (req, res): Promise<void> => {
 
 // PATCH /notifications/:id/read
 router.patch("/notifications/:id/read", async (req, res): Promise<void> => {
-  const auth = getAuth(req);
-  const userId = auth?.userId;
+  const userId = resolveUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
@@ -89,8 +100,7 @@ router.patch("/notifications/:id/read", async (req, res): Promise<void> => {
 
 // PATCH /notifications/read-all
 router.patch("/notifications/read-all", async (req, res): Promise<void> => {
-  const auth = getAuth(req);
-  const userId = auth?.userId;
+  const userId = resolveUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;

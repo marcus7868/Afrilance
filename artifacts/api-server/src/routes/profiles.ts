@@ -19,10 +19,22 @@ async function getMyProfileId(userId: string): Promise<number | null> {
   return profile?.id ?? null;
 }
 
-// GET /profiles/me
-router.get("/profiles/me", async (req, res): Promise<void> => {
+function resolveUserId(req: any): string | null {
   const auth = getAuth(req);
   const userId = auth?.userId;
+  if (userId) return userId;
+
+  const authHeader = req.headers.authorization;
+  if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+    return authHeader.slice("Bearer ".length).trim() || null;
+  }
+
+  return null;
+}
+
+// GET /profiles/me
+router.get("/profiles/me", async (req, res): Promise<void> => {
+  const userId = resolveUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;
@@ -43,8 +55,7 @@ router.get("/profiles/me", async (req, res): Promise<void> => {
 
 // PUT /profiles/me
 router.put("/profiles/me", async (req, res): Promise<void> => {
-  const auth = getAuth(req);
-  const userId = auth?.userId;
+  const userId = resolveUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Unauthorized" });
     return;

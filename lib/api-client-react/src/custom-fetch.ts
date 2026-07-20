@@ -17,6 +17,18 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 
 let _baseUrl: string | null = null;
 let _authTokenGetter: AuthTokenGetter | null = null;
+const AUTH_GETTER_GLOBAL_KEY = "__afrilanceAuthTokenGetter__";
+
+function getGlobalAuthTokenGetter(): AuthTokenGetter | null {
+  if (typeof globalThis === "undefined") return null;
+  const value = (globalThis as typeof globalThis & Record<string, unknown>)[AUTH_GETTER_GLOBAL_KEY];
+  return typeof value === "function" ? (value as AuthTokenGetter) : null;
+}
+
+function setGlobalAuthTokenGetter(getter: AuthTokenGetter | null): void {
+  if (typeof globalThis === "undefined") return;
+  (globalThis as typeof globalThis & Record<string, unknown>)[AUTH_GETTER_GLOBAL_KEY] = getter;
+}
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -42,6 +54,7 @@ export function setBaseUrl(url: string | null): void {
  */
 export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
   _authTokenGetter = getter;
+  setGlobalAuthTokenGetter(getter);
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -351,10 +364,21 @@ export async function customFetch<T = unknown>(
 
   // Attach bearer token when an auth getter is configured and no
   // Authorization header has been explicitly provided.
-  if (_authTokenGetter && !headers.has("authorization")) {
-    const token = await _authTokenGetter();
+  const authTokenGetter = _authTokenGetter ?? getGlobalAuthTokenGetter();
+
+  if (!headers.has("authorization") && authTokenGetter) {
+    const token = await authTokenGetter();
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
+    }
+  }
+
+  // Fallback for browser sessions when no explicit bridge has been installed.
+  if (!headers.has("authorization") && typeof window !== "undefined") {
+    const clerk = (window as Window & typeof globalThis & { Clerk?: { session?: { getToken?: () => Promise<string | null> | string | null } } }).Clerk;
+    const clerkToken = await clerk?.session?.getToken?.();
+    if (clerkToken) {
+      headers.set("authorization", `Bearer ${clerkToken}`);
     }
   }
 

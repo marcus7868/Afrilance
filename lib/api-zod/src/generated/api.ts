@@ -62,6 +62,7 @@ export const UpsertMyProfileBody = zod.object({
   "location": zod.string().nullish(),
   "skills": zod.array(zod.string()).optional(),
   "hourlyRate": zod.number().nullish(),
+  "fixedRate": zod.number().nullish(),
   "category": zod.string().nullish(),
   "portfolioItems": zod.array(zod.object({
   "id": zod.number(),
